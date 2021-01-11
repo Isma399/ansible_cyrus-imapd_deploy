@@ -1,0 +1,6 @@
+/^X-Sender:/            IGNORE
+/^X-Originating-IP:/    IGNORE
+/^X-Mailer:/            IGNORE
+/^Received:/            IGNORE
+/^User-Agent:/          IGNORE
+

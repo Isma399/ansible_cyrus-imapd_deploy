@@ -1,0 +1,308 @@
+---
+- name: Install postfix, amavisd-new, spamassassin, clamav, perl-Net-DNS, perl-Mail-SPF_XS, pyzor, clamav-scanner-systemd, postgrey, perl-Geo-IP, policycoreutils-python, python36, python36-pip
+  package:
+    name: postfix, amavisd-new, spamassassin, clamav, clamd, perl-Net-DNS, perl-Mail-SPF_XS, pyzor, clamav-scanner-systemd, postgrey, perl-Geo-IP, policycoreutils-python, python36, python36-pip, opendkim
+    state: present
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '7'
+
+- name: Install perl-IO-stringy with PowerTools repo
+  package:
+    name: perl-IO-stringy, perl-Digest-SHA1, perl-common-sense
+    enablerepo: PowerTools
+    state: present
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '8'
+
+- name: Install postfix, amavisd-new, spamassassin, clamd, perl-Net-DNS, perl-Mail-SPF_XS, perl-Geo-IP, policycoreutils-python
+  package:
+    name: postfix, amavisd-new, spamassassin, clamav, clamd, perl-Net-DNS, perl-Mail-SPF_XS, pyzor, clamav-scanner-systemd, perl-Geo-IP, policycoreutils-python-utils, python3-pip, opendkim
+    state: present
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '8'
+
+#- name: pip install isbg, typing
+#  pip:
+#    name: isbg
+#    executable: pip3.6
+
+#- name: (Postgrey) Copy /etc/sysconfig/postgrey
+#  copy:
+#    src: postgrey
+#    dest: /etc/sysconfig/postgrey
+#    owner: root
+#    group: root
+#    mode: 0644
+
+#- name: (Postgrey) Copy postgrey whitelist client local
+#  copy:
+#    src: postgrey_whitelist_clients.local
+#    dest: /etc/postfix/postgrey_whitelist_clients.local
+#    owner: root
+#    group: root
+#    mode: 0644
+
+- name: (ClamAV) Delete a systemd file for clamd
+  file:
+    state: absent
+    path:  /usr/lib/systemd/system/clamd@.service
+
+- name: (ClamAV) Copy systemd clamd.service
+  copy:
+    src: clamd.service
+    dest: /usr/lib/systemd/system/clamd.service
+    owner: root
+    group: root
+    mode: 0644
+
+- name: (ClamAV) Copy systemd clamd@scan.service
+  copy:
+    src: clamd@scan.service
+    dest: /usr/lib/systemd/system/clamd@scan.service
+    owner: root
+    group: root
+    mode: 0644
+
+- name: (Amavisd) copy systemd amavisd-new
+  copy:
+    src: amavisd.service
+    dest: /usr/lib/systemd/system/amavisd.service
+
+
+- name: (ClamAV) Copy scan.conf for clamd
+  copy:
+    src: scan.conf
+    dest: /etc/clamd.d/scan.conf
+    owner: root
+    group: root
+    mode: 0644
+
+- name: (ClamAV) touch /var/log/clamd.scan
+  file:
+    path: /var/log/clamd.scan
+    state: file
+    mode: 0644
+    owner: amavis
+    group: amavis
+  notify:
+    - restorecon clamd.scan
+
+- name: (ClamAV) copy freshclam.conf
+  copy:
+    src=freshclam.conf
+    dest=/etc/freshclam.conf
+  notify:
+    - restart clamd
+    - restart amavisd
+    - create clamav db
+
+
+- name: (Amavisd) copy amavisd.conf
+  template:
+    src: amavisd.conf
+    dest: /etc/amavisd/amavisd.conf
+
+- name: (Postfix) copy postfix master.cf
+  copy:
+    src=master.cf
+    dest=/etc/postfix/master.cf
+
+- name: (Postfix) Copy headers to remove file
+  copy:
+    src: headers_to_remove
+    dest: /etc/postfix/headers_to_remove
+    owner: root
+    group: root
+    mode: 0644
+
+- name: (Postfix) Copy postfix main.cf
+  template: 
+    src=main.cf 
+    dest=/etc/postfix/main.cf 
+    owner=root 
+    group=root
+    mode=0644
+
+- name: (Postfix) Copy postfix networks_ubo
+  copy: 
+    src=networks_ubo
+    dest=/etc/postfix/networks_ubo 
+    owner=root 
+    group=root
+    mode=0644
+
+- name: (Postfix) Copy postfix virtual
+  copy: 
+    src=virtual 
+    dest=/etc/postfix/virtual 
+    owner=root 
+    group=root
+    mode=0644
+  notify:
+    - virtual postmap
+    - restart postfix
+
+- name: (Postfix) Copy postfix transport
+  template: 
+    src=transport
+    dest=/etc/postfix/transport 
+    owner=root 
+    group=root
+    mode=0644
+  notify:
+    - transport postmap
+    - restart postfix
+
+- name: (Postfix) Copy postfix ldap-virtual.cf
+  template: 
+    src=ldap-virtual.cf 
+    dest=/etc/postfix/ldap-virtual.cf 
+    owner=root 
+    group=root
+    mode=0644
+  notify:
+    - restart postfix
+
+- name: (Postfix) Copy postfix access
+  copy: 
+    src=access 
+    dest=/etc/postfix/access 
+    owner=root 
+    group=root
+    mode=0644
+  notify:
+    - access postmap
+    - restart postfix
+
+- name: (Postfix) Copy postfix spamhaus-ok
+  copy: 
+    src=spamhaus-ok 
+    dest=/etc/postfix/spamhaus-ok 
+    owner=root
+    group=root
+    mode=0644
+  notify:
+    - spamhaus-ok postmap
+    - restart postfix
+
+- name: Copy spamassassin local.cf
+  copy: 
+    src=local.cf 
+    dest=/etc/mail/spamassassin/local.cf 
+    owner=root group=root
+    mode=0644
+  notify:
+    - restart amavisd
+
+- name: create user spamassassin
+  user:
+    name: spamassassin
+    shell: /sbin/nologin
+    groups: amavis
+    append: yes
+  notify:
+    - restart amavisd
+
+- name: Create a folder for bayes learning (spamassassin)
+  file:
+    path: /var/spool/amavisd/spamassassin
+    state: directory
+    mode: 0766
+    owner: amavis
+    group: amavis
+  notify:
+    - restart amavisd
+
+- name: Create a folder for quarantine (spamassassin)
+  file:
+    path: /var/quarantine
+    state: directory
+    mode: 0775
+    owner: amavis
+    group: amavis
+  notify:
+    - restart amavisd
+
+- name: (Spamassassin) Copy spamassassin sysconfig
+  copy: 
+    src: spamassassin 
+    dest: /etc/sysconfig/spamassassin
+    owner: root 
+    group: root
+    mode: 0644
+
+
+- name: Make a cron entry for sa-update
+  cron:
+    name: "Update spamassassin"
+    minute: 1
+    hour: 0
+    job: "/usr/bin/sa-update"
+
+- name: (Spamassassin) Ensure spamassassin is started and enabled at boot.
+  service:
+    name: spamassassin
+    state: started
+    enabled: yes
+
+
+- name: (Amavisd) Ensure amavisd is started and enabled at boot.
+  service:
+    name:  amavisd
+    state: started
+    enabled: yes
+
+- name: (Postgrey) Ensure postgrey is started and enabled at boot
+  service:
+    name: postgrey.service
+    state: started
+    enabled: yes
+
+- name: (Postfix) Ensure postfix is started and enabled at boot.
+  service:
+    name: postfix
+    state: started
+    enabled: yes
+
+- name: (DKIM) copy /etc/opendkim.conf
+  template:
+    src: opendkim.conf
+    dest: /etc/opendkim.conf
+
+- name: (DKIM) Copy private key (look in handler and ansible-vault create dkim.keys)
+  copy:
+    content: '{{ dkim_private_key }}'
+    dest: /etc/opendkim/keys/default.private
+    owner: opendkim
+    group: opendkim
+    mode: 0600
+    
+- name: (DKIM) Copy certificate (needed in the DNS entry)
+  copy:
+    content: '{{ dkim_certficate }}'
+    dest: /etc/opendkim/keys/default.txt
+    owner: opendkim
+    group: opendkim
+    mode: 0600
+
+- name: (DKIM) chown /etc/opendkim.conf
+  file:
+    path: /etc/opendkim.conf
+    owner: opendkim
+    group: opendkim
+
+- name: (DKIM) restart and enable opendkim
+  service:
+    name: opendkim
+    state: started
+    enabled: yes  
+
+- name: sebool spamd_update_can_network
+  seboolean:
+    name: spamd_update_can_network
+    state: yes
+    persistent: yes
+
+- name: sebool daemons_dump_core
+  seboolean:
+    name: daemons_dump_core
+    state: yes
+    persistent: yes
+

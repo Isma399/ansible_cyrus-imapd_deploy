@@ -1,0 +1,274 @@
+---
+#### Ansible role security
+- set_fact:
+    _hostgroup: '{{ group_names | difference(["python3_hosts"]) }}'
+  delegate_to: localhost
+  run_once: yes
+
+- debug:
+    msg: _hostgroup= {{ _hostgroup }}
+
+- set_fact:
+    imap_hosts: "{{ groups['imap-backend'] }} + {{ groups['imap-replicat'] }} + {{ groups['imap-murder'] }} + {{ groups['imap-frontend'] }}"
+  delegate_to: localhost
+  run_once: yes
+
+- set_fact:
+    imap_ips: |
+      {% set ip_list = [] %}
+      {% for host in imap_hosts %}
+      {% set _ = ip_list.append(lookup('dig', host)) %}
+      {% endfor %}
+      {{ ip_list }}
+  delegate_to: localhost
+  run_once: yes
+
+- name: (fail2ban) Install fai2lban, whois
+  package:
+    state: present
+    name: fail2ban, whois
+  when: _hostgroup[0] in [ 'antispam', 'imap-frontend', 'submission', 'nginx-mailproxy']
+
+- name: (!! testing !!) drop all except ssh
+  copy: 
+    src: public.xml
+    dest: /etc/firewalld/zones/public.xml
+    owner: root
+    group: root
+    mode: 0644
+  tags: 
+    - reset
+
+- name: (firewalld) Make sure the firewall is running
+  service:
+    name: firewalld
+    state: started
+    enabled: yes
+
+- name: (firewalld) Add services to each server
+  vars:
+    - services:
+        mta: [ ssh, smtp ]
+        webmail: [http, https, ssh ]
+        imap-frontend: [ pop3s, imap, imaps,  ssh, managesieve ]
+        imap-backend: [ pop3s, imap, imaps,  ssh, managesieve ]
+        imap-murder: [ pop3s, imap, imaps,  ssh ]
+        imap-replicat: [ pop3s, imap, imaps,  ssh, managesieve ]
+        antispam: [smtp, smtps, ssh]
+        smtp-outbound: [smtp, ssh]
+        submission: [ smtp, smtps, smtp-submission, ssh]
+        nginx-mailproxy: [ pop3s, imap, imaps, managesieve, ssh, http ]
+        ldap: [ ssh, ldap ]
+  firewalld:
+    service: "{{ item }}"
+    permanent: true
+    state: enabled
+  with_items: "{{ services[_hostgroup[0]] }}" 
+  notify:
+    - restart firewalld
+
+- name: (firewalld) open smtp for internal-mta to imap-proxy
+  firewalld:
+    rich_rule: 'rule family=ipv4 source address={{ item }} service name=smtp accept'
+    permanent: true
+    state: enabled
+  when: "'imap-frontend' in group_names[0]"
+  with_items: "{{ smtp_ip_list }}"
+  notify:
+    - restart firewalld
+
+- name: (firewalld) Allow POP only for {{ internal_network }}
+  firewalld:
+    rich_rule: 'rule family="ipv4" source address="{{ internal_network }}" service name="pop3" accept'
+    permanent: true
+    state: enabled
+  when: ('imap-backend' in group_names[0]) or
+        ('imap-replicat' in group_names[0]) or
+        ('imap-frontend' in group_names[0])
+  notify:
+    - restart firewalld
+
+- name: (firewalld) open port 2526/tcp for Tina backup
+  firewalld:
+    rich_rule: 'rule family=ipv4 source address={{ tina_server }} port port=2525 protocol=tcp accept'
+    permanent: true
+    state: enabled
+  notify:
+    - restart firewalld
+
+- name: (firewalld) open port 2526/tcp for tina2.univ-brest.fr
+  firewalld:
+    rich_rule: 'rule family=ipv4 source address={{ tina_server }} port port=2526 protocol=udp accept'
+    permanent: true
+    state: enabled
+  notify:
+    - restart firewalld
+
+- name: (firewalld) open snmp for nagios
+  firewalld:
+    rich_rule: 'rule family=ipv4 source address={{ snmp_server }} service name=snmp accept'
+    permanent: true
+    state: enabled
+  notify:
+    - restart firewalld
+
+- name: (firewalld) open snmp for Barracuda
+  firewalld:
+    rich_rule: 'rule family="ipv4" source address="{{ barracuda_server }}" service name="snmp" accept'
+    permanent: true
+    state: enabled
+  when: "'imap-frontend' in group_names[0]"
+  notify:
+    - restart firewalld
+ 
+- name: (firewalld) open snmp for imapsync
+  firewalld:
+    rich_rule: 'rule family=ipv4 source address={{ imapsync_server }} service name=snmp accept'
+    permanent: true
+    state: enabled
+  when: "'imap-backend' in group_names[0]"
+  notify:
+    - restart firewalld
+
+- name: Disable dhcpv6-client
+  firewalld:
+    zone: public
+    service: dhcpv6-client
+    permanent: true
+    state: disabled
+  notify:
+    - restart firewalld
+
+- name: (firewalld) Add vrrp (keepalived) on imap-backends and imap-frontends
+  firewalld:
+    rich_rule: 'rule protocol value="vrrp" accept'
+    permanent: true
+    state: enabled
+  #command: firewall-cmd --add-rich-rule='rule protocol value="vrrp" accept' --permanent
+  when: ('imap-backend' in group_names[0]) or
+        ('imap-replicat' in group_names[0])
+  notify:
+    - restart firewalld
+
+- name: (firewalld) Add LMTP port to imap-proxy
+  firewalld:
+    rich_rule: 'rule family=ipv4 source address="{{ item }}"  port port=24 protocol=tcp accept'
+    permanent: true
+    state: enabled
+  with_items: "{{ smtp_ip_list }}"
+  when: "'imap-frontend' in group_names[0]"
+  notify:
+    - restart firewalld
+
+- name: (firewalld) Add SIEVE port (2000) to imap-proxy
+  firewalld:
+    rich_rule: 'rule family=ipv4  port port=2000 protocol=tcp accept'
+    permanent: true
+    state: enabled
+  when: ('imap-frontend' in group_names[0]) or
+        ('nginx-mailproxy' in group_names[0])
+  notify:
+    - restart firewalld
+
+
+- name: (firewalld) Add mupdate port (3905) to cyrus-murder
+  firewalld:
+    port: 3905/tcp
+    permanent: true
+    state: enabled
+  when: "'imap-murder' in group_names[0]"
+  notify:
+    - restart firewalld
+ 
+# this rule could be commented when cyrus-murder will be installed
+- name: (firewalld) Add LMTP port to imap-backend
+  firewalld:
+    rich_rule: 'rule family=ipv4 source address="{{ item }}"  port port=24 protocol=tcp accept'
+    permanent: true
+    state: enabled
+  when: "'imap-backend' in group_names[0]"
+  with_items: "{{ imap_proxy_ip_list }}"
+  notify:
+    - restart firewalld
+
+- name: (firewalld) Add LMTP port to imap-replicat
+  firewalld:
+    rich_rule: 'rule family=ipv4 source address="{{ item }}"  port port=24 protocol=tcp accept'
+    permanent: true
+    state: enabled
+  when: "'imap-replicat' in group_names[0]"
+  with_items: "{{ imap_proxy_ip_list }}"
+  notify:
+    - restart firewalld
+
+- name: (fail2ban) Copy /etc/fail2ban/jail.local
+  template:
+    src=jail.local
+    dest=/etc/fail2ban/jail.local
+    owner=root
+    group=root
+    mode=0644
+  when: _hostgroup[0] in [ 'antispam', 'imap-frontend', 'submission', 'nginx-mailproxy'] 
+
+- name: (fail2ban) copy filter.d/postfix.conf
+  copy:
+    src: postfix.conf
+    dest: /etc/fail2ban/filter.d/postfix.conf
+    owner: root
+    group: root
+    mode: 0644
+  when: ("submission" in group_names[0]) or
+        ("smtp-outbound" in group_names[0])
+
+- name: (fail2ban) copy filter.d/postfix-sasl.conf
+  copy:
+    src: postfix-sasl.conf
+    dest: /etc/fail2ban/filter.d/postfix-sasl.conf
+    owner: root
+    group: root
+    mode: 0644
+  when: ("submission" in group_names[0]) or
+        ("smtp-outbound" in group_names[0])
+
+
+- name: (fail2ban) copy filter.d/cyrus-imap.conf
+  copy:
+    src=cyrus-imap.conf
+    dest=/etc/fail2ban/filter.d/cyrus-imap.conf
+    owner=root
+    group=root
+    mode=0644
+  when: ("imap-frontend" in group_names[0]) or
+        ("nginx-mailproxy" in group_names[0])
+
+- name: (fail2ban) copy filter.d/cyrus-imap2.conf
+  copy:
+    src=cyrus-imap2.conf
+    dest=/etc/fail2ban/filter.d/cyrus-imap2.conf
+    owner=root
+    group=root
+    mode=0644
+  when: ("imap-frontend" in group_names[0]) or
+        ("nginx-mailproxy" in group_names[0])
+  notify:
+    - restart fail2ban
+
+- name: (fail2ban) Make sure fail2ban is enabled and started
+  service:
+    name: fail2ban
+    state: started
+    enabled: yes
+  when: _hostgroup[0] in [ 'antispam', 'imap-frontend', 'submission', 'nginx-mailproxy'] 
+
+#- name: Check firewalld rules
+#  command: firewall-cmd --list-all
+#  register: firewall_status
+#
+#- debug:
+#    var: firewall_status.stdout
+- name: (firewalld) Make sure the firewall is running
+  service:
+    name: firewalld
+    state: reloaded
+    enabled: yes
+

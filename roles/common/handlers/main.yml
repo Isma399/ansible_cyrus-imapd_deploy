@@ -1,0 +1,25 @@
+---
+- name: restart rsyslog
+  systemd: name=rsyslog state=restarted enabled=yes daemon_reload=yes
+  become: yes
+
+- name: restart chronyd
+  systemd:
+    name: chronyd
+    state: restarted
+    enabled: yes
+  become: yes
+
+- name: restart journald
+  systemd:
+    name: systemd-journald 
+    state: restarted
+    enabled: yes
+  become: yes
+
+- name: postalias
+  command: /usr/sbin/postalias /etc/aliases
+
+- name: reboot
+  reboot:
+    reboot_timeout: 100

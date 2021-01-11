@@ -1,0 +1,63 @@
+---
+# Ansible role Postix
+- name: systctl loopback interface (net.ipv4.conf.lo.forwarding)
+  sysctl:
+    name: net.ipv4.conf.lo.forwarding
+    value: 0
+    sysctl_set: yes
+    state: present
+    reload: yes
+  notify:
+    - start loopback
+
+- name: systctl loopback interface (net.ipv4.conf.lo.arp_ignore)
+  sysctl:
+    name: net.ipv4.conf.lo.arp_ignore
+    value: 1
+    sysctl_set: yes
+    state: present
+    reload: yes
+  notify:
+    - start loopback
+
+- name: systctl loopback interface (net.ipv4.conf.lo.arp_announce)
+  sysctl:
+    name: net.ipv4.conf.lo.arp_announce
+    value: 2
+    sysctl_set: yes
+    state: present
+    reload: yes
+  notify:
+    - start loopback
+
+- name: systctl loopback interface (net.ipv4.conf.all.arp_ignore)
+  sysctl:
+    name: net.ipv4.conf.all.arp_ignore
+    value: 1
+    sysctl_set: yes
+    state: present
+    reload: yes
+  notify:
+    - start loopback
+
+- name: systctl loopback interface (net.ipv4.conf.all.arp_announce)
+  sysctl:
+    name: net.ipv4.conf.all.arp_announce
+    value: 2
+    sysctl_set: yes
+    state: present
+    reload: yes
+  notify:
+    - start loopback
+
+
+- name: copy the sysconfig network script loopback conf
+  template:
+    src: ifcfg-lo.0
+    dest: /etc/sysconfig/network-scripts/ifcfg-lo.0
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - start loopback
+

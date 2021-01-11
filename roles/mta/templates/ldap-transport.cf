@@ -1,0 +1,11 @@
+#Added with Ansible
+server_host = {{ ldap_server_vip }}
+search_base = {{ ldap_ou }}
+domain = {{ mail_domain }}
+query_filter = (supannAutreMail=%u@{{ mail_domain }})
+result_attribute = mailHost
+result_format = lmtp:%s
+bind = no
+version = 3
+#debuglevel = 99
+

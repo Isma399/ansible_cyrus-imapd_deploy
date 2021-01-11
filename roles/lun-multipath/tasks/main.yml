@@ -1,0 +1,40 @@
+---
+# roles: lun-multipath
+- name: debug dictionary
+  debug: msg=maildata{{ item }}
+  with_items:
+    - "{{ kvm[ansible_hostname]|lower|replace('cyrus', '') }}"
+- name: debug dictionary
+  debug: msg=metadata{{ item }}
+  with_items:
+    - "{{ kvm[ansible_hostname]|lower|replace('cyrus', '') }}"
+
+- name: copy maildata xml files
+  template:
+    src=maildata.xml
+    dest=/root/libvirt_xml_files/maildata{{ item }}.xml
+  vars:
+    templateVar: "{{ item }}"
+  with_items:
+    - "{{ kvm[ansible_hostname]|lower|replace('cyrus', '') }}"
+
+- name: copy medata xml files
+  vars:
+    templateVar: "{{ item }}"
+  template:
+    src=metadata.xml
+    dest=/root/libvirt_xml_files/metadata{{ item }}.xml
+  with_items:
+    - "{{ kvm[ansible_hostname]|lower|replace('cyrus', '') }}"
+
+- name: attach-device maildata to guests
+  shell: /usr/bin/virsh attach-device {{ item }} --file /root/libvirt_xml_files/maildata{{ item|lower|replace('cyrus', '') }}.xml --persistent
+  with_items:
+    - "{{ kvm[ansible_hostname] }}"
+
+- name: attach-device metadata to guests
+  shell: /usr/bin/virsh attach-device {{ item }} --file /root/libvirt_xml_files/metadata{{ item|lower|replace('cyrus', '') }}.xml --persistent
+  with_items:
+    - "{{ kvm[ansible_hostname] }}"
+
+

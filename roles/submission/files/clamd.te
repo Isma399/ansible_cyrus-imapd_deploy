@@ -1,0 +1,35 @@
+
+module clamd 1.0;
+
+require {
+	type var_log_t;
+	type antivirus_t;
+	type proc_net_t;
+	type root_t;
+	type spamd_update_t;
+	type spamd_t;
+	type virt_qemu_ga_t;
+	type squid_port_t;
+	class tcp_socket name_connect;
+	class dir write;
+	class file { open read };
+}
+
+#============= antivirus_t ==============
+
+#!!!! This avc is allowed in the current policy
+allow antivirus_t var_log_t:file open;
+
+#============= spamd_t ==============
+
+#!!!! WARNING: 'root_t' is a base type.
+#!!!! This avc can be allowed using the boolean 'daemons_dump_core'
+allow spamd_t root_t:dir write;
+
+#============= spamd_update_t ==============
+
+#!!!! This avc can be allowed using the boolean 'spamd_update_can_network'
+allow spamd_update_t squid_port_t:tcp_socket name_connect;
+
+#============= virt_qemu_ga_t ==============
+allow virt_qemu_ga_t proc_net_t:file read;

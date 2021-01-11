@@ -1,0 +1,35 @@
+Sensible values need to be encrypted.
+Vault is one solution.
+Create in this folder a vault file :
+ansible-vault create vault
+Note and nver forget the password.
+
+In this file, set this variables :
+
+
+become_user: <ANSIBLE_USER_ON_THE_VM>
+become_password: <ROOT_PASSWORD>
+cyrus_password: <CYRUS_PASSWORD>
+cyrus_admin: <CYRUS_ADMIN>
+lmtp_admin: <LMTP_ADMIN>
+lmtp_password: <LMTP_PASSWORD>
+mupdate_authname: <MURDER-MAN>
+mupdate_password: <MUDER-PASSWORD>
+proxy_authname: <CYRUS-FRONTEND-LOGIN>
+proxy_password: <CYRUS-FRONTEND-PASSWORD>
+sync_password: <SYNC_CLIENT_PASSWORD>
+keepalived_password:
+ldap_viewer_cn:
+ldap_password:
+
+ldap_ou = 'ou=YOUR_FULL_LDAP_OU'
+
+dkim_private_key: |
+  -----BEGIN RSA PRIVATE KEY-----
+  <DKIM_KEY, don't forget to set that in your DNS>
+  -----END RSA PRIVATE KEY-----
+
+dkim_certficate: |
+  default._domainkey      IN      TXT     ( "v=DKIM1; k=rsa; s=email; "
+          "p=<DKIM_DOMAINKEY>" )  ; ----- DKIM key default for your domaon
+ 

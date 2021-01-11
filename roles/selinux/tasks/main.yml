@@ -1,0 +1,81 @@
+---
+#### Ansible role security
+- set_fact:
+    _hostgroup: '{{ group_names | difference(["python3_hosts"]) }}'
+  delegate_to: localhost
+  run_once: yes
+
+- name: (SELinux) Install tools
+  package:
+    name: policycoreutils-python
+    state: present
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '7'
+
+- name: (SELinux) Install tools
+  dnf:
+    name: python3-policycoreutils
+    state: present
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '8'
+
+
+- name: (SELinux) Set nis_enabled flag on and keep it persistent across reboots
+  seboolean:
+    name: nis_enabled
+    state: yes
+    persistent: yes
+
+- name: Delete /var/log/audit/audit.log
+  file:
+    state: absent
+    path: /var/log/audit/audit.log
+
+- name: Touch /var/log/audit/audit.log
+  file:
+    path: /var/log/audit/audit.log
+    state: touch
+    owner: root
+    group: root
+    mode: 0600
+
+- name: (SELinux) Remove old policy package
+  command: semodule -r myapp
+  failed_when: false
+  when: '"nginx-mailproxy" not in group_names[0]'
+
+- name: (SELinux-Centos7) Copy SELinux type enforcement file -> myapp.te
+  template: 
+    src=myapp.te
+    dest=/tmp/
+  when: '"nginx-mailproxy" not in group_names[0] and ansible_distribution == "CentOS" and ansible_distribution_major_version == "7"'
+  notify:
+    - compile module file
+    - build policy package
+    - load policy package
+
+- name: (SELinux-Centos8) Copy SELinux type enforcement file -> /tmp/myapp-centos8.te
+  template:
+    src=myapp-centos8.te
+    dest=/tmp/myapp.te
+  when: '"nginx-mailproxy" not in group_names[0] and ansible_distribution == "CentOS" and ansible_distribution_major_version == "8"'
+  notify:
+    - compile module file
+    - build policy package
+    - load policy package
+
+- name: (SELinux) activate
+  selinux:
+    policy: targeted
+    state: enforcing
+
+# semanage fcontext -a -e /var/spool/imap /var/lib/imap
+#     libselinux-python
+#     policycoreutils-python
+#
+#     - name: Allow cyrus to write mail in /var/spool/imap
+#     sefcontext:
+#       target: '/var/spool/imap'
+#       setype: mail_spool_t 
+#       state: present
+#
+#     - name: Apply new SELinux file context to filesystem
+#       command: restorecon -irv /var/spool/imap

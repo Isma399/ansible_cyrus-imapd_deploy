@@ -1,0 +1,160 @@
+#  Nginx role
+- name: (Dovecot) Install pigeonhole Sieve proxy
+  yum:
+    name: dovecot-pigeonhole
+    state: present
+
+- name: (Dovecot)
+  copy:
+    src: dovecot.conf
+    dest: /etc/dovecot/dovecot.conf
+    owner: root
+    group: root
+  notify:
+    - restart dovecot
+
+- name: (Dovecot) copy sieve conf
+  copy:
+    src: 90-sieve.conf
+    dest: /etc/dovecot/conf.d/90-sieve.conf
+    owner: root
+    group: root
+  notify:
+    - restart dovecot
+
+- name: (Dovecot) copy manage-sieve conf
+  copy:
+    src: 20-managesieve.conf
+    dest: /etc/dovecot/conf.d/20-managesieve.conf
+    owner: root
+    group: root
+  notify:
+    - restart dovecot
+
+- name: (Dovecot) Copy SSL conf
+  template:
+    src: 10-ssl.conf
+    dest: /etc/dovecot/conf.d/10-ssl.conf
+    owner: root
+    group: root
+  notify:
+    - restart dovecot
+
+- name: (Dovecot) copy auth conf
+  copy:
+    src: 10-auth.conf
+    dest: /etc/dovecot/conf.d/10-auth.conf
+    owner: root
+    group: root
+  notify:
+    - restart dovecot
+
+- name: (Dovecot) copy auth-ldap
+  copy:
+    src: auth-ldap.conf.ext
+    dest: /etc/dovecot/conf.d/auth-ldap.conf.ext
+    owner: root
+    group: root
+  notify:
+    - restart dovecot
+
+- name: (Dovecot) Copy ldap conf
+  template:
+    src: dovecot-ldap.conf.ext
+    dest: /etc/dovecot/dovecot-ldap.conf.ext
+    owner: root
+    group: root
+  notify:
+    - restart dovecot
+
+- name: (Nginx) Install nginx, nginx-mail
+  yum:
+    name: nginx, nginx-mod-mail, php-fpm, php, php-ldap
+    state: present
+
+- name: (Nginx) copy nginx.conf
+  template:
+    src: nginx.conf
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+  notify:
+    - restart nginx
+
+- name: (Nginx) create /var/www/html directory
+  file:
+    path: /var/www/html
+    state: directory
+
+- name: (Nginx) Copy auth.php in /var/www/html 
+  template:
+    src: auth.php
+    dest: /var/www/html/auth.php
+    owner: nginx
+    group: nginx
+
+- name: (Nginx) copy php-dpm www.conf
+  copy:
+    src: www.conf
+    dest: /etc/php-fpm.d/www.conf
+    owner: root
+    group: root
+  notify:
+    - restart php-fpm
+    - restart nginx
+
+- name: (Nginx) update ulimit (-Sn and -Hn)
+  copy:
+    src: limits.conf
+    dest: /etc/security/limits.conf
+    owner: root
+
+- name: (SELinux) Copy SELinux type enforcement file -> nginx.te
+  copy:
+    src=nginx.te
+    dest=/tmp/
+  notify:
+    - compile module file
+    - build policy package
+    - load policy package
+
+- name: (SElinux) Allow nginx to listen on tcp ports
+  seport:
+    ports: 143, 993, 110, 995
+    proto: tcp
+    setype: http_port_t
+    state: present
+
+- name: (SElinux) Setboolean httpd_can_network_connect
+  seboolean:
+    name: httpd_can_network_connect
+    state: yes
+    persistent: yes
+
+- name: (SElinux) Setboolean httpd_can_network_connect
+  seboolean:
+    name: httpd_setrlimit
+    state: yes
+    persistent: yes
+
+- name: (SElinux) Setboolean httpd_run_stickshift
+  seboolean:
+    name: httpd_run_stickshift
+    state: yes
+    persistent: yes
+
+
+- name: ensure php-fpm is started
+  service:
+    name: php-fpm
+    state: started
+
+- name: ensure nginx is started
+  service:
+    name: nginx
+    state: started
+
+- name: ensure dovecot is started
+  service:
+    name: dovecot
+    state: started

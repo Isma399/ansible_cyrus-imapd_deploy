@@ -1,0 +1,34 @@
+---
+# Ansible role
+- set_fact:
+    _hostgroup: '{{ group_names | difference(["python3_hosts"]) }}'
+  delegate_to: localhost
+  run_once: yes
+
+- debug:
+    msg: _hostgroup= {{ _hostgroup }}
+
+- name: Copy cyrus-sasl saslauthd.conf
+  template:
+     src=saslauthd.conf
+     dest=/etc/saslauthd.conf
+     owner=root group=root
+     mode=0644
+  when: "'submission' in _hostgroup[0]"
+
+- name: Copy cyrus-sasl sysconfig/saslauthd
+  template:
+    src=etc_sysconfig_saslauthd
+    dest=/etc/sysconfig/saslauthd
+    owner=root
+    group=root
+    mode=0644
+  notify:
+    - restart saslauthd
+
+- name: Ensure saslauthd is started
+  service:
+    name: saslauthd
+    state: started
+    enabled: yes
+

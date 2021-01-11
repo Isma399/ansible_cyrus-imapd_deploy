@@ -1,0 +1,92 @@
+---
+- name: Get wildcard certicates -> cert
+  copy: 
+    src: '{{ ssl_crt }}'
+    dest: /etc/ssl/certs/
+    owner: root
+    group: mail
+    mode: 0644
+  tags: 
+    - cert-copy
+
+- name: Get wildcard certicates -> key
+  copy: 
+    src: '{{ ssl_key }}'
+    dest: /etc/ssl/certs/
+    owner: root
+    group: mail
+    mode: 0640
+
+- name: Get wildcard certicates -> CAchain
+  copy: 
+    src: '{{ ssl_cachain }}'
+    dest: /etc/ssl/certs/
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Get wildcard certicates -> chained.crt
+  copy: 
+    src: '{{ ssl_chained_crt }}'
+    dest: /etc/ssl/certs/
+    owner: root
+    group: root
+    mode: 0644
+
+- name: unlink cert
+  file:
+    path: /etc/ssl/wildcard.{{ mail_domain}}.crt
+    state: absent  
+
+- name: unlink key
+  file:
+    path: /etc/ssl/wildcard.{{ mail_domain}}.key
+    state: absent
+
+- name: unlink CAchain
+  file:
+    path: /etc/ssl/wildcard.{{ mail_domain}}.cachain
+    state: absent
+
+- name: unlink chained cert
+  file:
+    path: /etc/ssl/wildcard.{{ mail_domain}}.chained.crt
+    state: absent
+
+
+- name: Create symbolic link for crt
+  file:
+    src:  '/etc/ssl/certs/{{ ssl_crt }}'
+    dest: /etc/ssl/certs/wildcard.{{ mail_domain}}.crt
+    owner: root
+    group: mail
+    mode: 0644
+    state: link
+
+- name: Create symbolic link for key
+  file:
+    src: '/etc/ssl/certs/{{ ssl_key }}'
+    dest: /etc/ssl/certs/wildcard.{{ mail_domain}}.key
+    owner: root
+    group: mail
+    mode: 0640
+    state: link
+
+- name: Create symbolic link for CAchain
+  file:
+    src: '/etc/ssl/certs/{{ ssl_cachain }}'
+    dest: /etc/ssl/certs/wildcard.{{ mail_domain}}.cachain
+    owner: root
+    group: root
+    mode: 0644
+    state: link
+
+- name: Create symbolic link for chained crt
+  file:
+    src: '/etc/ssl/certs/{{ ssl_chained_crt }}'
+    dest: /etc/ssl/certs/wildcard.{{ mail_domain}}.chained.crt
+    owner: root
+    group: root
+    mode: 0644
+    state: link
+

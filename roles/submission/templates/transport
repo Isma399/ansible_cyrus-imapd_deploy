@@ -1,0 +1,7 @@
+orange.fr slow:
+orange.com slow:
+wanadoo.fr slow:
+wanadoo.com slow:
+laposte.net slow:
+
+{{ mail_domain }} univ-brest.fr           smtp:[192.168.3.104]

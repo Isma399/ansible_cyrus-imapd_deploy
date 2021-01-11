@@ -1,0 +1,9 @@
+{% if 'preprod' in inventory_hostname %}
+{{ mail_domain }} lmtp:{{lmtp_vip }}
+{% endif %}
+{% if 'test' in inventory_hostname %}
+# COMPLETE WITH YOUR NEEDS
+{% endif %}
+{% if 'pro.univ-brest.fr' in ansible_fqdn %}
+{% endif %}
+

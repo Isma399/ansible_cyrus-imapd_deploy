@@ -1,0 +1,8 @@
+# SOGO role
+- name: Install pakages
+  dnf: 
+    name: gcc-objc, gnustep-base, gnustep-make, gnustep-base-devel, libxml2-devel, openssl-devel, openldap-devel, postgresql-devel, libmemcached-devel, libcurl-devel 
+    state: present
+  tags:
+    - dnf 
+

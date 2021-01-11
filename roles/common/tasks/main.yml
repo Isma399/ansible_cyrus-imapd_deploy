@@ -1,0 +1,193 @@
+---
+# Ansible role Common
+#- name: Fix hostname mismatch
+#  shell: hostnamectl set-hostname `sed 's/\.{{ mail_domain }}$/-{{ mail_domain }}/g' /etc/hostname`
+    
+#- name: Fix /etc/hosts pb
+#  shell: sed -i 's/\.{{ mail_domain | replace('.univ-brest.fr', '') }}/-{{ mail_domain | replace('.univ-brest.fr', '') }}/g' /etc/hosts
+- set_fact:
+    _hostgroup: '{{ group_names | difference(["python3_hosts"]) }}'
+  delegate_to: localhost
+  run_once: yes
+
+- debug:
+    msg: _hostgroup= {{ _hostgroup }}
+
+- name: Delete proxy environment when not needed
+  copy:
+    src: environment
+    dest: /etc/environment
+    owner: root
+    mode: 0644
+  notify: reboot
+  when: "'submission' in _hostgroup[0]"   
+
+- name: Delete reference to proxy in yum.conf
+  lineinfile:
+    path: /etc/yum.conf
+    state: absent
+    regexp: 'proxy'
+  when: "'submission' in _hostgroup[0]"
+
+- name: Install cyrus-sasl
+  package:
+    state: present
+    name: cyrus-sasl, cyrus-sasl-plain, bind-utils, telnet, openldap-clients, tcpdump, python-ldap, cyrus-imapd-utils, net-snmp-utils, ioping, fio, tmux
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '7'
+
+- name: Install cyrus-sasl
+  dnf:
+    state: present
+    name: postfix, cyrus-sasl, cyrus-sasl-plain, bind-utils, telnet, openldap-clients, tcpdump, python3-ldap,  python3-policycoreutils, policycoreutils-python-utils, cyrus-imapd-utils, net-snmp-utils, fio, tmux
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '8'
+
+
+#- name: Update the bouzin
+#  yum:
+#    name: '*'
+#    state: latest
+#  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '7'
+
+#- name: Update the bouzin
+#  dnf:
+#    name: '*'
+#    state: latest
+#  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '8'
+
+- name: Change rights on /var/log/maillog
+  file:
+    path: /var/log/maillog
+    owner: root
+    group: mail
+    mode: '0640'
+
+- name: Daily rotate logs
+  copy:
+    src: syslog
+    dest: /etc/logrotate.d/syslog
+    owner: root
+    group: root
+    mode: 0644
+  
+
+- name: Remove
+  package:
+    state: absent
+    name: logcheck
+
+- name: remove cloud-init
+  package:
+    state: absent
+    name: cloud-init
+
+- name: set default language
+  shell:
+    cmd: localectl set-locale C.utf8
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '8'
+
+- name: Get carbonized-dark theme for vim
+  copy:
+    src: carbonized-dark.vim
+    dest: /usr/share/vim/vim74/colors/carbonized-dark.vim
+    mode : '0644'
+    owner: root
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '7'
+
+- name: Get carbonized-dark theme for vim
+  copy:
+    src: carbonized-dark.vim
+    dest: /usr/share/vim/vim80/colors/carbonized-dark.vim
+    mode : '0644'
+    owner: root
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '8'
+
+- name: Set Vim colorscheme to evening
+  copy: 
+    src: vimrc
+    dest: /root/.vimrc
+    mode: '0640'
+    owner: root 
+
+- name: create folder /usr/local/scripts/
+  file:
+    path: /usr/local/scripts
+    state: directory
+    mode: '0755'
+
+- name: copy chrony.conf
+  template:
+    src: chrony.conf
+    dest: /etc/chrony.conf
+    mode: '0644'
+  notify: 
+    - restart chronyd
+
+- name: ensure chronyd
+  systemd:
+    name: chronyd
+    state: started
+    enabled: yes
+  become: yes
+
+- name: Add root alias (->{{ sender }}
+  lineinfile:
+    path: /etc/aliases
+    line: 'root: {{ sender }}'
+    state: present
+  notify: postalias
+
+- name: ignore-systemd-session-slice.conf
+  copy:
+    src: ignore-systemd-session-slice.conf
+    dest: /etc/rsyslog.d/ignore-systemd-session-slice.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: 
+    - restart rsyslog
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '7'
+
+- name: (rsyslogd) bug, Cannot assign requested address
+  copy:
+    src: rsyslog.conf
+    dest: /etc/rsyslog.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - restart rsyslog
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '7'
+
+- name: Increase rate to not drop logs
+  copy:
+    src: journald.conf
+    dest: /etc/systemd/journald.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - restart journald
+
+- name: ensure systemd-journald is started
+  systemd:
+    name: systemd-journald
+    state: started
+    enabled: yes
+  become: yes
+ 
+
+- name: ensure rsyslog is started
+  systemd: 
+    name: rsyslog 
+    state: started
+    enabled: yes 
+  become: yes
+
+- name: syslog maillog to journal3
+  template:
+    src: 22-remote-journal3.conf
+    dest: /etc/rsyslog.d/22-remote-journal3.conf
+    owner: root
+    group: root
+    mode: '0644'
+

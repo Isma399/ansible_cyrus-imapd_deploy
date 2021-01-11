@@ -1,0 +1,12 @@
+# Added with Ansible
+server_host = {{ ldap_server_vip }}
+search_base = {{ ldap_ou }} 
+bind_dn =
+bind_pw =
+domain = {{ mail_domain }}
+query_filter = (SupannAutremail=%s@{{ mail_domain }})
+scope = sub
+result_attribute = mailForwardingAddress
+bind = no
+version = 3
+#debuglevel = 99

@@ -1,0 +1,179 @@
+---
+# Ansible role cyrus-3.0
+- set_fact:
+    _hostgroup: '{{ group_names | difference(["python3_hosts"]) }}'
+  delegate_to: localhost
+  run_once: yes
+
+
+- name: Install some tools for cyrus rpms
+  package:
+    state: present
+    name:
+      - git 
+      - net-snmp 
+      - "perl(JSON)" 
+      - "perl(Net::Server)"
+      - "perl(URI::Escape)"
+      - "perl(Unix::Syslog)"
+      - libical-devel
+      - libnghttp2
+      - shapelib-devel
+      - sscg
+      - sg3_utils
+      - python-pip
+      - pam-devel
+      - gcc
+  tags: only-install
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '7'
+
+
+# if you need this rpms, contact me
+- name: git clone cyrus rpms
+  git:
+    repo: 'personnal git/cyrus.rpms'
+    dest: /root/cyrus-rpms
+  tags: only-install
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '7'
+
+- name: install cyrus rpms
+  yum:
+    name:
+      - /root/cyrus-rpms/RPMS/x86_64/perl-Cyrus-3.0.8-10.el7.centos.x86_64.rpm
+      - /root/cyrus-rpms/RPMS/x86_64/cyrus-imapd-libs-3.0.8-10.el7.centos.x86_64.rpm
+      - /root/cyrus-rpms/RPMS/x86_64/cyrus-imapd-utils-3.0.8-10.el7.centos.x86_64.rpm
+      - /root/cyrus-rpms/RPMS/x86_64/cyrus-imapd-debuginfo-3.0.8-10.el7.centos.x86_64.rpm
+      - /root/cyrus-rpms/RPMS/x86_64/cyrus-imapd-3.0.8-10.el7.centos.x86_64.rpm
+      - /root/cyrus-rpms/RPMS/x86_64/cyrus-imapd-devel-3.0.8-10.el7.centos.x86_64.rpm
+    state: present
+  tags: only-install
+  notify: 
+    - mkimap
+    - acl on imap spool
+    - restart cyrus 
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '7'
+   
+- name: install cyrus for centos8
+  dnf:
+    name:
+     - cyrus-imapd-utils, cyrus-imapd, perl-Term-ReadLine-Gnu
+    state: present
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '8'
+
+
+- name: copy cyrus.conf
+  template:
+    src=cyrus.conf
+    dest=/etc/cyrus.conf
+    owner=cyrus
+    group=mail
+    mode=0644
+  notify:
+    - restart cyrus
+
+- name: copy imapd.conf
+  template:
+    src=imapd.conf
+    dest=/etc/imapd.conf
+    owner=cyrus
+    group=mail
+    mode=0644
+  notify:
+    - restart cyrus
+
+#  python -c "from passlib.hash import sha512_crypt; import getpass; print(sha512_crypt.using(rounds=5000).hash(getpass.getpass()))"
+
+- name: copy defautlt sieve script
+  copy:
+    src=default_sieve_script
+    dest=/var/lib/imap/sieve/default_sieve_script
+    owner=cyrus
+    group=mail
+  when: ('imap-backend' in group_names[0]) or
+        ('imap-replicat' in group_names[0])
+
+- name: set cyrus password 
+  user:
+    name: cyrus
+    shell: /bin/bash
+    password: encrypt it :  python -c "from passlib.hash import sha512_crypt; import getpass; print(sha512_crypt.using(rounds=5000).hash(getpass.getpass()))" 
+
+- name: set cyr-replicator password 
+  user:
+    name: cyr-replicator
+    password: encrypt 
+    group: mail
+    comment: Cyrus replicator
+
+- name: set murder-man password (gbkdskvybxsubkqt)
+  user:
+    name: murder-man
+    password: encrypt
+    group: mail
+    comment: Murder updater
+
+- name: ensure cyrus-imapd is stopped
+  systemd:
+    name: cyrus-imapd
+    state: stopped
+
+- name: ensure saslauthd is started
+  systemd:
+    name: saslauthd
+    state: started
+
+- name: copy python cyruslib
+  copy:
+    src: cyruslib.py
+    dest: /usr/lib/python2.7/site-packages/cyruslib.py
+    owner: root
+    group: root
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '7'  
+
+- name: copy Python sievelib
+  copy:
+    src: sievelib.py
+    dest: /usr/lib/python2.7/site-packages/sievelib.py
+    owner: root
+    group: root
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '7'
+
+- name: copy python cyruslib
+  copy:
+    src: cyruslib.py
+    dest: /usr/lib/python3.6/site-packages/cyruslib.py
+    owner: root
+    group: root
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '8'
+
+- name: copy Python sievelib
+  copy:
+    src: sievelib.py
+    dest: /usr/lib/python3.6/site-packages/sievelib.py
+    owner: root
+    group: root
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '8'
+
+- name: Copy quota script
+  copy:
+    src: fix_quota_for.py
+    dest: /usr/local/scripts/
+    mode: 0700
+    owner: root
+    group: root
+
+- name: copy Postfix conf
+  template:
+    src: main.cf
+    dest: /etc/postfix/main.cf
+    owner: root
+    group: root
+  notify:
+    - restart postfix
+
+- name: (murder) setsebool
+  seboolean:
+    name: domain_can_mmap_files 
+    state: yes
+    persistent: yes
+  when: "'imap-murder' in _hostgroup[0]"

@@ -1,0 +1,25 @@
+- name: rpmbuild
+  command: rpmbuild --rebuild /root/cyrus-imapd-2.4.20-2.el7.src.rpm
+
+- name: restart cyrus
+  systemd:
+    name: cyrus-imapd
+    enabled: yes
+    state: restarted
+
+- name: acl on imap spool
+  file:
+    path: /var/spool/imap
+    state: directory
+    recurse: yes
+    owner: cyrus
+    group: mail
+
+- name: restart postfix
+  systemd:
+    name: postfix
+    enabled: yes
+    state: restarted
+
+- name: mkimap
+  shell: su -s /bin/bash - cyrus -c '/usr/libexec/cyrus-imapd/mkimap /etc/imapd.conf'

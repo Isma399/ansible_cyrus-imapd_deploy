@@ -1,0 +1,8 @@
+# Added with Ansible
+server_host = {{ ldap_server_vip }}
+search_base = {{ ldap_ou }}
+query_filter = (SupannAutremail=%s@{{ mail_domain }})
+scope = sub
+result_attribute = uid
+bind = no 
+#debuglevel = 99

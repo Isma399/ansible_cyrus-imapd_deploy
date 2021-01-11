@@ -1,0 +1,30 @@
+- name: virtual postmap
+  command: /usr/sbin/postmap /etc/postfix/virtual
+
+- name: access postmap
+  command: /usr/sbin/postmap hash:/etc/postfix/access
+
+- name: spamhaus-ok postmap
+  command: /usr/sbin/postmap /etc/postfix/spamhaus-ok
+
+- name: header-checks postmap
+  command: /usr/sbin/postmap hash:/etc/postfix/header_checks
+
+- name: postmap transport
+  command: /usr/sbin/postmap hash:/etc/postfix/transport
+
+- name: lmtpauth postmap
+  command: /usr/sbin/postmap /etc/postfix/lmtpauth
+
+- name: reload virtual alias map
+  command: /usr/sbin/postmap hash:/etc/postfix/virtual_alias_map
+
+- name: reload virtual mailbox map
+  command: /usr/sbin/postmap hash:/etc/postfix/virtual_mailbox_map
+
+- name: postalias
+  command: /usr/sbin/postalias /etc/aliases 
+
+- name: restart postfix
+  service: name=postfix state=restarted
+

@@ -1,0 +1,7 @@
+ <disk type='block' device='disk'>
+      <driver name='qemu' type='raw' cache='writeback' io='threads'/>
+      <source dev='/dev/mapper/maildata{{ templateVar }}'/>
+      <target dev='vdb' bus='virtio'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x08' function='0x0'/>
+</disk>
+

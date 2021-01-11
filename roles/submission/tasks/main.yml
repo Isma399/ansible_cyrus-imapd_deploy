@@ -1,0 +1,205 @@
+---
+- name: Install perl-IO-stringy with PowerTools repo
+  dnf:
+    name: perl-IO-stringy, clamd, perl-Digest-SHA1, perl-common-sense
+    enablerepo: PowerTools
+    state: present
+
+- name: Install all relative stuff
+  dnf:
+    name: postfix-ldap, amavisd-new, clamav-update, opendkim,  python3-policycoreutils, lz4
+    state: present
+
+- name: (ClamAV) Copy scan.conf for clamd
+  copy:
+    src: scan.conf-centos8
+    dest: /etc/clamd.d/scan.conf
+    owner: root
+    group: root
+    mode: 0644
+
+- name: (ClamAV) touch /var/log/clamd.scan
+  file:
+    path: /var/log/clamd.scan
+    state: touch
+    mode: 0644
+    owner: clamscan
+    group: clamscan
+  notify:
+    - enable clamd@scan
+    - restorecon clamd.scan
+    - sebool antivirus
+    - restart clamd
+
+- name: touch /var/log/freshclam.log
+  file:
+    path: /var/log/freshclam.log
+    state: touch
+    mode: 0644
+    owner: clamupdate
+    group: clamupdate
+
+#- name: chown on var/lib/clamav
+#  file:
+#    path: /var/lib/clamav
+#    state: directory
+#    recurse: yes
+#    owner: clamupdate
+#    group: clamupdate
+#    mode: 0755
+
+- name: (ClamAV) copy freshclam.conf
+  copy:
+    src=freshclam.conf
+    dest=/etc/freshclam.conf
+  notify:
+    - create clamav db
+    - restart clamd
+
+- name: (Amavisd) create the quarantine folder
+  file:
+    path: /var/quarantine
+    state: directory
+    mode: 0775
+    owner: amavis
+    group: amavis
+
+- name: (Amavisd) install forensics-tools rpm
+  dnf: 
+    name: https://forensics.cert.org/cert-forensics-tools-release-el8.rpm
+    state: present
+
+- name: (Amavisd) install unrar
+  dnf: 
+    name: rar
+    enablerepo: forensics
+    state: present
+
+- name: (Amavisd) install cabextract rpm
+  dnf:
+    name: https://pkgs.dyn.su/el8/base/x86_64/cabextract-1.9-2.el8.x86_64.rpm
+    state: present
+
+- name: (Amavisd) copy amavisd.conf
+  template:
+    src: amavisd.conf
+    dest: /etc/amavisd/amavisd.conf
+    mode: 0644
+    owner: root
+    group : root
+  notify:
+    - restart amavisd
+
+- name: (Postfix) copy postfix master.cf
+  copy:
+    src=master.cf
+    dest=/etc/postfix/master.cf
+
+- name: (Postfix) Copy headers to remove file
+  copy:
+    src: headers_to_remove
+    dest: /etc/postfix/headers_to_remove
+    owner: root
+    group: root
+    mode: 0644
+
+- name: (Postfix) Copy postfix main.cf
+  template: 
+    src=main.cf 
+    dest=/etc/postfix/main.cf 
+    owner=root 
+    group=root
+    mode=0644
+
+- name: (Postfix) Copy postfix networks
+  copy: 
+    src=networks
+    dest=/etc/postfix/networks 
+    owner=root 
+    group=root
+    mode=0644
+
+#- name: (Postfix) Copy postfix virtual
+#  copy: 
+#    src=virtual 
+#    dest=/etc/postfix/virtual 
+#    owner=root 
+#    group=root
+#    mode=0644
+#  notify:
+#    - virtual postmap
+#    - restart postfix
+
+- name: (Postfix) Copy postfix transport
+  template: 
+    src=transport
+    dest=/etc/postfix/transport 
+    owner=root 
+    group=root
+    mode=0644
+  notify:
+    - transport postmap
+    - restart postfix
+
+#- name: (Postfix) Copy postfix ldap-virtual.cf
+#  template: 
+#    src=ldap-virtual.cf 
+#    dest=/etc/postfix/ldap-virtual.cf 
+#    owner=root 
+#    group=root
+#    mode=0644
+#  notify:
+#    - restart postfix
+
+- name: (Postfix) Copy postfix access
+  copy: 
+    src=access 
+    dest=/etc/postfix/access 
+    owner=root 
+    group=root
+    mode=0644
+  notify:
+    - access postmap
+    - restart postfix
+
+- name: (Amavisd) Ensure amavisd is started and enabled at boot.
+  systemd:
+    name:  amavisd
+    state: started
+    enabled: yes
+
+- name: (Postfix) Ensure postfix is started and enabled at boot.
+  service:
+    name: postfix
+    state: started
+    enabled: yes
+
+- name: (DKIM) copy /etc/opendkim.conf
+  template:
+    owner: opendkim
+    group: opendkim
+    src: opendkim.conf
+    dest: /etc/opendkim.conf
+
+- name: (DKIM) Copy private key (look in handler and ansible-vault create dkim.keys)
+  copy:
+    content: '{{ dkim_private_key }}'
+    dest: /etc/opendkim/keys/default.private
+    owner: opendkim
+    group: opendkim
+    mode: 0600
+    
+- name: (DKIM) Copy certificate (needed in the DNS entry)
+  copy:
+    content: '{{ dkim_certficate }}'
+    dest: /etc/opendkim/keys/default.txt
+    owner: opendkim
+    group: opendkim
+    mode: 0600
+
+- name: (DKIM) restart and enable opendkim
+  service:
+    name: opendkim
+    state: started
+    enabled: yes  
+

@@ -1,0 +1,56 @@
+# keepalived roles
+- name: Install keepalived package
+  yum:
+    name: keepalived
+    state: present
+
+- name: copy the conf
+  template:
+    src: keepalived.conf
+    dest: /etc/keepalived/keepalived.conf
+  notify:
+    - restart keepalived
+
+- name: Active ip forwarding
+  copy:
+    src: sysctl.conf
+    dest: /etc/sysctl.conf
+    owner: root
+    group: root
+    mode: 0644
+  notify: 
+    - sysctl
+
+- name: Active snmp for keepalived
+  copy:
+    src: default_keepalived 
+    dest: /etc/default/keepalived
+    owner: root
+    group: root
+    mode: 0644
+
+
+- name: copy check script
+  template:
+    src: imap_search.py
+    dest: /etc/keepalived/imap_search.py
+    owner: cyrus
+    mode: 0740
+  when: "'imap-backend' in group_names[0] and ansible_distribution == 'CentOS' and ansible_distribution_major_version == '7'"
+  notify:
+    - chcon imap_search
+- name: Enable keepalived at boot
+  service:
+    name: keepalived
+    state: started
+
+- name: (SELinux) Copy SELinux type enforcement file -> keepalived_lmtp.te
+  copy:
+    src: keepalived_lmtp.te
+    dest: /tmp/
+  notify:
+    - compile module file
+    - build policy package
+    - load policy package
+    - setsebool
+

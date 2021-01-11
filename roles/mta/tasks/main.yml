@@ -1,0 +1,62 @@
+---
+# Ansible role Postfix
+- name: Ensure postfix is installed.
+  package:
+    name: postfix
+    state: present
+
+- name: Install postfix-ldap
+  dnf:
+    name: postfix-ldap
+    state: present
+
+- name: Copy files
+  copy: 
+    src: "{{ item }}"
+    dest: "/etc/postfix/{{ item }}" 
+    owner: root 
+    group: root
+    mode: 0644
+  with_items:
+    - networks_ubo
+    - access
+    - header_checks
+    - master.cf
+  notify:
+    - access postmap
+    - header-checks postmap
+    - restart postfix
+
+- name: Copy a script detecting Overquota
+  template:
+    src: who_is_over_quota.sh
+    dest: /usr/local/scripts/who_is_over_quota.sh
+    mode: 0744
+    owner: root
+    group: root
+
+- name: Copy templates
+  template:
+    src: "{{ item }}"
+    dest: "/etc/postfix/{{ item }}"
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - lmtpauth
+    - ldap-aliases.cf
+    - ldap-virtual.cf
+    - ldap-transport.cf
+    - transport
+    - main.cf
+  notify:
+    - postmap transport
+    - lmtpauth postmap
+    - restart postfix
+
+- name: Ensure postfix is started and enabled at boot.
+  service:
+    name: postfix
+    state: started
+    enabled: yes
+

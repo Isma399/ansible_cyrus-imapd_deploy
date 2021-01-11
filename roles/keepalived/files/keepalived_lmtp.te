@@ -1,0 +1,18 @@
+
+module keepalived_lmtp 1.0;
+
+require {
+	type lmtp_port_t;
+	type keepalived_t;
+	type keepalived_unconfined_script_t;
+	class tcp_socket name_connect;
+	class process signal;
+	class capability { setuid kill setgid fowner net_bind_service dac_override };	
+}
+
+#============= keepalived_t ==============
+
+#!!!! This avc can be allowed using the boolean 'nis_enabled'
+allow keepalived_t lmtp_port_t:tcp_socket name_connect;
+allow keepalived_t self:capability { setuid kill setgid fowner net_bind_service dac_override };
+allow keepalived_t keepalived_unconfined_script_t:process signal;

@@ -1,0 +1,117 @@
+---
+- name: Install some tools to build cyrus-imapd package
+  yum:
+    state: present
+    name: 
+      - git 
+      - gcc-c++ 
+      - autoconf 
+      - automake 
+      - bison 
+      - CUnit-devel 
+      - cyrus-sasl-devel 
+      - cyrus-sasl-md5 
+      - cyrus-sasl-plain 
+      - flex 
+      - gcc 
+      - groff 
+      - jansson-devel 
+      - krb5-devel 
+      - libical-devel 
+      - libxml2-devel 
+      - libtool 
+      - libuuid-devel 
+      - net-snmp-devel 
+      - openldap-devel 
+      - openssl-devel 
+      - "perl(ExtUtils::MakeMaker)" 
+      - perl-devel 
+      - pkgconfig 
+      - sqlite-devel 
+      - tcp_wrappers 
+      - transfig
+      - perl-generators
+      - glib2-devel
+      - libnghttp2-devel
+      - shapelib-devel
+      - imaptest  
+      - words
+      - graphviz
+      - doxygen
+      - help2man
+      - python-docutils
+      - zlib-devel
+      - file-devel
+      - pcre-devel
+      - tcl
+      - python-pygments
+      - "perl(JSON)"
+      - "perl(AnyEvent)" 
+      - "perl(BSD::Resource)" 
+      - "perl(Clone)" 
+      - "perl(experimental)"  
+      - "perl(File::chdir)" 
+      - "perl(File::Slurp)"
+      - "perl(IO::Socket::INET6)"
+      - "perl(Config::IniFiles)"
+      - "perl(Math::Int64)"
+      - "perl(Net::Server)"
+      - "perl(Path::Tiny)"
+      - "perl(String::CRC32)"
+      - "perl(Sys::Syslog)"
+      - "perl(Test::Unit::TestRunner)"
+      - "perl(Unix::Syslog)"
+      - "perl(XML::DOM)"
+      - "perl(XML::Generator)"
+      - sscg
+
+#
+#- instal xapian   :
+#  git config --global http.prxy http://uboproxy.univ-brest.fr:3128
+#  git clone https://github.com/cyrusimap/xapian.git
+#(
+#  cd xapian
+#  git clean -f -x -d
+#  ./bootstrap
+#  ./configure --enable-silent-rules --prefix=/usr/local/cyruslibs
+#  cd xapian-core
+#  make
+#  make install
+#)
+
+#- name: Download cyrus-imapd tar.gz
+#  get_url: 
+#    url: https://www.cyrusimap.org/releases/cyrus-imapd-3.0.8.tar.gz
+#    dest: /root/cyrus-imapd-3.0.8.tar.gz
+
+#- name: Git clone fedora for cyrus-imapd src rpm
+#  git: repo=https://src.fedoraproject.org/rpms/cyrus-imapd.git dst=/root/cyrus-imapd
+
+#- name: unarchibe tar.gz
+#  unarchive:
+#    src: /root/cyrus-imapd-3.0.8.tar.gz
+#    dest: /root/
+#    remote_src: yes
+
+#- name: run autoreconf -vi --force in /root/cyrus-imapd
+#  command: chdir=/root/cyrus-imapd autoreconf -vi --force
+
+#- name: install perl cyruslibs
+#  yum:
+#    name: 
+#      - http://journal.univ-brest.fr/cyrus/rpms/perl-Cyrus-3.0.8-7.el7.centos.x86_64.rpm
+#      - http://journal.univ-brest.fr/cyrus/rpms/cyrus-imapd-libs-3.0.8-7.el7.centos.x86_64.rpm
+#      - http://journal.univ-brest.fr/cyrus/rpms/cyrus-imapd-utils-3.0.8-7.el7.centos.x86_64.rpm
+#      - http://journal.univ-brest.fr/cyrus/rpms/cyrus-imapd-debuginfo-3.0.8-7.el7.centos.x86_64.rpm
+#      - http://journal.univ-brest.fr/cyrus/rpms/cyrus-imapd-virusscan-3.0.8-7.el7.centos.x86_64.rpm
+#      - http://journal.univ-brest.fr/cyrus/rpms/cyrus-imapd-vzic-3.0.8-7.el7.centos.x86_64.rpm  --nodeps
+#      - http://journal.univ-brest.fr/cyrus/rpms/cyrus-imapd-3.0.8-7.el7.centos.x86_64.rpm
+#      - http://journal.univ-brest.fr/cyrus/rpms/cyrus-imapd-vzic-3.0.8-7.el7.centos.x86_64.rpm  --replacepkgs
+#    state: present
+
+# net-snmp postgresql-devel "perl(JSON)" "perl(Net::Server)" "perl(URI::Escape)" "perl(Unix:Syslog)" libical-devel libnghttp2
+# shapelib-devel clamav-devel sscg 
+
+  
+
+

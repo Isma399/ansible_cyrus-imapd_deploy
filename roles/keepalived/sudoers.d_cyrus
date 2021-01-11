@@ -1,0 +1,9 @@
+# This sudo rule is for keepalived
+# notify script is using cyrus user to :
+# service cyrus-imapd restart
+# when keepalived state has changed
+Defaults        env_file = "/etc/sudoers.d/envfile.txt"
+
+# Alias commands
+Cmnd_Alias	CYRUS_CMND=/usr/bin/systemctl restart cyrus-imapd, /usr/bin/systemctl start cyrus-imapd, /usr/bin/systemctl stop cyrus-imapd 
+cyrus ALL=(ALL) NOPASSWD: CYRUS_CMND

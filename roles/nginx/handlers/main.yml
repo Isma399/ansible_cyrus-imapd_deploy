@@ -1,0 +1,27 @@
+- name: restart nginx
+  service:
+    name: nginx
+    state: started
+    enabled: yes
+
+- name: restart dovecot
+  service:
+    name: dovecot
+    state: restarted
+    enabled: yes
+
+- name: restart php-fpm
+  service:
+    name: php-fpm
+    state: restarted
+    enabled: yes
+
+- name: compile module file
+  command: checkmodule -M -m -o /tmp/nginx.mod /tmp/nginx.te
+
+- name: build policy package
+  command: semodule_package -o /tmp/nginx.pp -m /tmp/nginx.mod
+
+- name: load policy package
+  command: /usr/sbin/semodule -i /tmp/nginx.pp
+

@@ -1,0 +1,40 @@
+mail_domain: <MAIL_DOMAIN>
+# VIP
+ldap_server_vip: ldap://<LDAP_VIP>
+mx_vip: <MX_VIP>
+internal_mta_vip: <INTERNAL-HUB_VIP>
+imap_submission_vip: <OUTBOUND_SMTP_VIP>
+nginx_vip: <IMAP_NGINX_PROXY-VIP>
+smtp_default: <SMTP_HOSTNAME> 
+lmtp_hostname: <LMTPD_PROXY_HOSTNAME> 
+mupdate_server: <MURDER_HOSTNAME>
+cas_hostname:
+snmp_community:
+syslog_ip:
+ntp_hostname:
+# MIGRATION - NGNINX PROXY
+legacy_imap_ip: <OLD_IMAP_VIP>
+legacy_imap: <OLD_IMAP_HOSTNAME>
+new_imap_ip: <NEW_IMAP_VIP>
+new_imap: <NE>_IMAP_HOSTNAME>
+
+# FIREWALL - IP LIST
+imap_proxy_ip_list: [  ]
+smtp_InOut_ip_list: [  ]
+smtp_ip_list: [  ]
+tina_server:
+barracuda_server:
+snmp_server: 
+internal_network: <INTERNAL_VMS_NETWORK, ie: 192.168.1.0/24>
+# TLS CERTS
+ssl_cachain: <CACHAIN_FILENAME> 
+ssl_crt: <WILDCARD_CRT_FILENAME>
+ssl_key: <WILDCARD_KEY_FILENAME>
+ssl_chained_crt: <WILDCARD_CHAINED_CRT_FILENAME>
+
+sender: "<SENDER_MAIL_ADDRESS>"
+# CHANGE THIS
+store_vip:
+  store-1: 1
+  store-2: 2
+  store-3: 3

@@ -1,0 +1,68 @@
+&&BUSINESS_HOURS {
+  days=Mon-Fri
+  time=07:30:00 - 19:00:00
+};
+&&WEEKEND {
+  !!days=Mon-Fri
+};
+&&SLOW {
+  days=Mon-Fri
+  !!time=07:30:00 - 19:00:00
+}
+
+# Pour une IP : 100 destinataires/heure
+#id=SASL_1
+#    protocol_state==END-OF-MESSAGE
+#    action=rcpt(client_address/100/3600/450 4.7.1 postfwd pb(SASL_1))
+
+# Pour un user: 100 messages/30min
+id=MSG_SASL_2
+    protocol_state==END-OF-MESSAGE
+    action=rate(sasl_username/100/1800/450 4.7.1 postfwd pb(SASL_2))
+
+# Pour un user: 200 destinataires/heure
+id=SASL_3
+    &&BUSINESS_HOURS
+    protocol_state==END-OF-MESSAGE
+    action=rcpt(sasl_username/100/3600/450 4.7.1 postfwd pb(SASL_3))
+
+# Pour un user: 50 destinataires/10 min
+id=SASL_4
+    &&BUSINESS_HOURS
+    protocol_state==END-OF-MESSAGE
+    action=rcpt(sasl_username/50/600/450 4.7.1 postfwd pb(SASL_4))
+
+# Pour un user hors heures ouvrees: 50 destinataires par heure
+id=SASL_5
+    &&SLOW
+    protocol_state==END-OF-MESSAGE
+    action=rcpt(sasl_username/50/3600/450 4.7.1 postfwd pb(SASL_5))
+
+# Pour un user hors heures ouvrees: 50 messages/10min
+id=SASL_6
+    &&SLOW
+    protocol_state==END-OF-MESSAGE
+    action=rate(sasl_username/50/600/450 4.7.1 postfwd pb(SASL_6))
+
+# Pour un user le week-end : 50 destinataires/heure
+id=SASL_7
+    &&WEEKEND
+    protocol_state==END-OF-MESSAGE
+    action=rcpt(sasl_username/50/3600/450 4.7.1 postfwd pb(SASL_7))
+
+# Pour un user le week-end: 5 destinataires en 10 minutes
+id=SASL_8
+    &&WEEKEND
+    protocol_state==END-OF-MESSAGE
+    action=rcpt(sasl_username/5/3600/450 4.7.1 postfwd pb(SASL_8))
+
+#id=BAN_BOTNET_COUNTRY ;
+#   sasl_username=~^(.+)$ ;
+#   client_uniq_country_login_count > 5 ;
+#   action=rate(sasl_username/1/3600/554 Your mail account ($$sasl_username) was compromised. Please change your password immediately after next login.) ;
+#
+#id=BAN_BOTNET_IP ;
+#   sasl_username=~^(.+)$ ;
+#   client_uniq_ip_login_count > 20 ;
+#   action=rate(sasl_username/1/3600/554 Your mail account ($$sasl_username) was compromised. Please change your password immediately after next login.) ;
+

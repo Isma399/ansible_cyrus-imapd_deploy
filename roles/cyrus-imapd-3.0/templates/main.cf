@@ -1,0 +1,15 @@
+compatibility_level = 2
+myhostname = {{ ansible_fqdn }}
+mydomain = {{ mail_domain }}
+relayhost = [{{ smtp_default }}]
+inet_interfaces = all
+inet_protocols = all
+{% if 'imap-frontend' in group_names %}
+mynetworks_style = subnet
+mydestination = $mydomain
+message_size_limit = 1024000000
+local_transport = lmtp:inet:[127.0.0.1]:24
+local_recipient_maps =
+{% else %}
+mynetworks_style = host
+{% endif %}

@@ -1,0 +1,25 @@
+#Added by Ansible!
+DEVICE=lo:0
+ONBOOT=yes
+BOOTPROTO=static
+{% if 'submission' in group_names %}
+IPADDR={{ nginx_vip }}
+{% endif %}
+{% if 'imap-frontend' in group_names %}
+IPADDR={{ imap_submission_vip }}
+{% endif %}
+{% if 'ldap' in group_names %}
+IPADDR={{ ldap_server_vip | replace('ldap://', '')  }}
+{% endif %}
+{% if 'mta' in group_names %}
+IPADDR={{ internal_mta_vip }}
+{% endif %}
+{% if 'antispam' in group_names %}
+IPADDR={{ mx_vip }}
+{% endif %}
+{% if 'nginx-mailproxy' in group_names %}
+IPADDR={{ nginx_vip }}
+{% endif %}
+
+NETMASK=255.255.255.255
+

@@ -1,0 +1,97 @@
+# Controlled by Ansible
+# Useful commands:
+#   tail /var/log/fail2ban.log -f
+#   fail2ban-client status postfix
+#   fail2ban-client status | grep "Jail list:" | sed "s/ //g" | awk '{split($2,a,",");for(i in a) system("fail2ban-client status " a[i])}' | grep "Status\|IP list"
+#   Unban:
+#     grep IPADDRESSHERE IPADDRESSHERE
+#     fail2ban-client set YOURJAILNAMEHERE unbanip IPADDRESSHERE
+#
+[DEFAULT]
+destemail = {{ sender }}postmaster@univ-brest.fr
+sender = fail2ban@{{ inventory_hostname }}
+backend = systemd
+action = %(action_mwl)s
+ignoreip = {{ internal_network }}
+
+#"bantime" is the number of seconds that a host is banned.
+bantime  = 600
+
+# A host is banned if it has generated "maxretry" during the last "findtime"
+# seconds.
+findtime  = 600
+
+# "maxretry" is the number of failures before a host get banned.
+maxretry = 10 
+
+{% if 'antispam' in _hostgroup[0] %}
+[postfix]
+enabled = true
+port = smtp,smtps
+filter = postfix
+logpath = /var/log/maillog
+
+[postfix-rbl]
+port     = smtp,smtps
+logpath  = /var/log/maillog
+backend  = %(postfix_backend)s
+
+#[postfix-auth]
+##
+##enabled     = true
+##port = smtp,smtps
+##filter      = postfix-auth
+##logpath = /var/log/mail.log
+{% endif %}
+
+{% if 'submission' in _hostgroup[0] %}
+[postfix]
+enabled = true
+port = submission,smtps
+filter = postfix
+logpath = /var/log/maillog
+
+[postfix-auth]
+enabled = true
+port = submission,smtps
+filter = postfix[auth]
+logpath = /var/log/maillog
+
+[postfix-sasl]
+enabled = true
+port = submission,smtps
+filter = postfix-sasl
+logpath = /var/log/maillog
+
+[postfix-many-errors]
+enabled = true
+filter = postfix[mode=errors]
+logpath = /var/log/maillog
+{% endif %}
+
+
+{% if 'imap-frontend' in _hostgroup[0] %}
+[cyrus-imap]
+enabled = true
+port = imap,imaps,pop3,pop3s
+filter = postfix
+logpath = /var/log/maillog
+[cyrus-imap2]
+enabled = true
+port = imap,imaps,pop3,pop3s
+filter = postfix
+logpath = /var/log/maillog
+{% endif %}
+
+{% if 'nginx-mailproxy' in _hostgroup[0] %}
+[cyrus-imap]
+enabled = true
+port = imap,imaps,pop3,pop3s
+filter = postfix
+logpath = /var/log/maillog
+[cyrus-imap2]
+enabled = true
+port = imap,imaps,pop3,pop3s
+filter = postfix
+logpath = /var/log/maillog
+{% endif %}

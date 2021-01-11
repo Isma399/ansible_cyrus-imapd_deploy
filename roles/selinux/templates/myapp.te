@@ -1,0 +1,268 @@
+{% if 'mta' in group_names[0] %}
+module myapp 1.1;
+
+require {
+        type proc_net_t;
+        type virt_qemu_ga_t;
+        class file  { getattr open read write };
+        type http_port_t;
+        type postfix_etc_t;
+        type snmpd_t;
+        type var_log_t;
+        type postfix_public_t;
+        type postfix_master_t;
+        type unconfined_t;
+        type saslauthd_t;
+        type postfix_smtpd_t;
+        class sock_file write;
+        class tcp_socket name_connect;
+        class unix_stream_socket connectto;
+
+}
+
+#============= virt_qemu_ga_t ==============
+
+#!!!! This avc is allowed in the current policy
+allow virt_qemu_ga_t proc_net_t:file read;
+allow saslauthd_t http_port_t:tcp_socket name_connect;
+allow postfix_smtpd_t unconfined_t:unix_stream_socket connectto;
+allow snmpd_t postfix_master_t:unix_stream_socket connectto;
+allow snmpd_t postfix_public_t:sock_file write;
+allow snmpd_t var_log_t:file { open write read };
+allow snmpd_t postfix_etc_t:file { getattr open read };
+{% endif %}
+{% if 'webmail' in group_names[0] %}
+module myapp 1.1;
+
+require {
+        type proc_net_t;
+        type virt_qemu_ga_t;
+        class file read;
+}
+
+#============= virt_qemu_ga_t ==============
+
+#!!!! This avc is allowed in the current policy
+allow virt_qemu_ga_t proc_net_t:file read;
+{% endif %}
+{% if 'imap-frontend' in group_names[0] %}
+module myapp 1.1;
+
+require {
+        type var_run_t;
+        type var_t;
+        type proc_net_t;
+        type virt_qemu_ga_t;
+        class file { read  create open write setattr};
+        class dir { add_name write };
+        class sock_file create;
+        type http_port_t;
+        type saslauthd_t;
+        class tcp_socket name_connect;
+}
+
+#============= virt_qemu_ga_t ==============
+
+#!!!! This avc is allowed in the current policy
+allow virt_qemu_ga_t proc_net_t:file read;
+allow saslauthd_t http_port_t:tcp_socket name_connect;
+allow saslauthd_t var_run_t:sock_file create;
+#!!!! WARNING: 'var_t' is a base type.
+allow saslauthd_t var_t:dir { add_name write };
+allow saslauthd_t var_t:file { create open write };
+allow saslauthd_t var_t:file setattr;
+{% endif %}
+{% if 'imap-murder' in group_names[0] %}
+module myapp 1.1;
+
+require {
+        type proc_net_t;
+        type virt_qemu_ga_t;
+        class file read;
+}
+
+#============= virt_qemu_ga_t ==============
+
+#!!!! This avc is allowed in the current policy
+allow virt_qemu_ga_t proc_net_t:file read;
+{% endif %}
+{% if 'imap-backend' in group_names[0] %}
+module myapp 1.1;
+
+require {
+        type sshd_t;
+        type cyrus_var_lib_t;
+        type cyrus_t;
+        type proc_net_t;
+        type virt_qemu_ga_t;
+        class file read;
+        class process signull;
+        type lmtp_port_t;
+        type keepalived_t;
+        type unconfined_service_t;
+        type init_t;
+        class tcp_socket name_connect;
+        class process signal;
+        type self;
+        class: capability sys_admin;
+}
+
+#============= virt_qemu_ga_t ==============
+
+#!!!! This avc is allowed in the current policy
+allow virt_qemu_ga_t proc_net_t:file read;
+allow keepalived_t lmtp_port_t:tcp_socket name_connect;
+allow keepalived_t init_t:process signal;
+allow sshd_t cyrus_var_lib_t:file read;
+#allow keepalived_t self:process getpgid;
+allow keepalived_t unconfined_service_t:process signull;
+allow keepalived_t cyrus_t:process signull;
+allow keepalived_t self:capability sys_admin;
+
+{% endif %}
+{% if 'imap-replicat' in group_names[0] %}
+module myapp 1.1;
+
+require {
+        type sshd_t;
+        type cyrus_var_lib_t;
+        type proc_net_t;
+        type virt_qemu_ga_t;
+        class file read;
+        type unconfined_service_t;
+        type keepalived_t;
+        type init_t;
+#        type self;
+        class process signull;
+        class process signal;
+        type cyrus_t;
+        type self;
+        class: capability sys_admin;
+#        class process getpgid;
+}
+
+#============= virt_qemu_ga_t ==============
+
+#!!!! This avc is allowed in the current policy
+allow virt_qemu_ga_t proc_net_t:file read;
+#============= keepalived_t ==============
+allow keepalived_t unconfined_service_t:process signull;
+allow keepalived_t init_t:process signal;
+#allow keepalived_t self:process getpgid;
+allow keepalived_t cyrus_t:process signull;
+allow keepalived_t self:capability sys_admin;
+allow sshd_t cyrus_var_lib_t:file read;
+{% endif %}
+{% if 'antispam' in group_names[0] %}
+module myapp 1.1;
+require {
+	type proc_net_t;
+	type virt_qemu_ga_t;
+        type antivirus_t;
+        type var_t;
+        type var_log_t;
+        type postfix_etc_t;
+        type snmpd_t;
+        type postfix_public_t;
+        type postfix_master_t;
+        type var_log_t;
+        type fail2ban_t;
+        type sysfs_t;
+        class dir write;
+        class dir add_name;
+        class file { getattr open read create write ioctl};
+        class sock_file write;
+        class unix_stream_socket connectto;
+}
+
+
+#============= virt_qemu_ga_t ==============
+allow virt_qemu_ga_t proc_net_t:file read;
+allow antivirus_t var_t:dir write;
+allow antivirus_t var_t:file write;
+allow antivirus_t var_t:file create;
+allow antivirus_t var_t:file { getattr ioctl };
+allow antivirus_t var_t:dir add_name;
+allow fail2ban_t sysfs_t:file read;
+allow fail2ban_t sysfs_t:file open;
+allow snmpd_t postfix_etc_t:file { getattr open read };
+allow snmpd_t postfix_master_t:unix_stream_socket connectto;
+allow snmpd_t postfix_public_t:sock_file write;
+allow snmpd_t var_log_t:file read;
+allow snmpd_t var_log_t:file open;
+allow snmpd_t var_log_t:file write;
+{% endif %}
+
+
+{% if 'submission' in group_names[0] %}
+module myapp 1.1;
+
+require {
+        type proc_net_t;
+        type fail2ban_t;
+        type sysfs_t;   
+        type virt_qemu_ga_t;
+	type var_log_t;
+        type antivirus_t;
+        type var_t;
+        type postfix_etc_t;
+        type snmpd_t;
+        type postfix_public_t;
+        type postfix_master_t;
+        type var_log_t;
+        class dir write;
+        class dir add_name;
+        class sock_file write;
+        class unix_stream_socket connectto;
+        class file { getattr open read write create  getattr ioctl};
+}
+
+
+#============= virt_qemu_ga_t ==============
+allow fail2ban_t sysfs_t:file read;
+allow virt_qemu_ga_t proc_net_t:file read;
+allow antivirus_t var_log_t:file open;
+#!!!! WARNING: 'var_t' is a base type.
+allow antivirus_t var_t:dir write;
+allow antivirus_t var_t:file { open write };
+allow antivirus_t var_t:file { getattr ioctl };
+allow antivirus_t var_t:file create;
+allow antivirus_t var_t:dir add_name;
+allow snmpd_t postfix_etc_t:file { getattr open read };
+allow snmpd_t postfix_master_t:unix_stream_socket connectto;
+allow snmpd_t postfix_public_t:sock_file write;
+allow snmpd_t var_log_t:file { open write read };
+{% endif %}
+
+{% if 'ldap' in group_names[0] %}
+module myapp 1.1;
+
+require {
+        type nslcd_t;
+        type virt_qemu_ga_t;
+        type slapd_t;
+        type unconfined_t;
+        type var_run_t;
+        type proc_net_t;
+        type user_tmp_t;
+        class unix_stream_socket connectto;
+        class sock_file unlink;
+        class file { open read create unlink};
+        class dir { add_name remove_name write };
+}
+
+#============= nslcd_t ==============
+
+#!!!! The file '/run/ldapi' is mislabeled on your system.
+#!!!! Fix with $ restorecon -R -v /run/ldapi
+allow nslcd_t unconfined_t:unix_stream_socket connectto;
+
+#============= slapd_t ==============
+allow slapd_t var_run_t:sock_file unlink;
+allow slapd_t user_tmp_t:dir { add_name remove_name write };
+allow slapd_t user_tmp_t:file { create unlink };
+
+#============= virt_qemu_ga_t ==============
+allow virt_qemu_ga_t proc_net_t:file read;
+
+{% endif %}

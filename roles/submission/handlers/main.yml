@@ -1,0 +1,69 @@
+- name: generic postmap
+  command: /usr/sbin/postmap /etc/postfix/generic
+
+- name: virtual postmap
+  command: /usr/sbin/postmap /etc/postfix/virtual
+
+- name: access postmap
+  command: /usr/sbin/postmap /etc/postfix/access
+
+- name: spamhaus-ok postmap
+  command: /usr/sbin/postmap /etc/postfix/spamhaus-ok
+
+- name: header-checks postmap
+  command: /usr/sbin/postmap /etc/postfix/header_checks
+
+- name: transport postmap
+  command: /usr/sbin/postmap /etc/postfix/transport
+
+- name: lmtpauth postmap
+  command: /usr/sbin/postmap /etc/postfix/lmtpauth
+
+- name: reload virtual alias map
+  command: /usr/sbin/postmap hash:/etc/postfix/virtual_alias_map
+
+- name: reload virtual mailbox map
+  command: /usr/sbin/postmap hash:/etc/postfix/virtual_mailbox_map
+
+- name: update spamassassin
+  command: /usr/bin/sa-update
+
+- name: enable clamd@scan
+  systemd: 
+    name: clamd@scan
+    enabled: yes
+
+- name: sebool antivirus
+  seboolean:
+    name: antivirus_can_scan_system
+    state: yes
+    persistent: yes  
+
+- name: restorecon clamd.scan
+  command: /usr/sbin/restorecon -R -v /var/log/clamd.scan
+
+- name: create clamav db
+  command: /usr/bin/freshclam -v
+
+- name: restart clamd
+  service: name=clamd state=restarted enabled=yes
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '7'
+
+- name: restart clamd
+  systemd: name=clamd@scan state=restarted enabled=yes
+  when: ansible_distribution == "CentOS" and ansible_distribution_major_version == '8'
+
+- name: restart postgrey
+  service: name=postgrey.service state=restarted enabled=yes
+
+- name: restart amavisd
+  service: name=amavisd state=restarted enabled=yes
+
+- name: restart spamassassin
+  service: name=spamassassin state=restarted enabled=yes
+
+- name: restart postfix
+  service: name=postfix state=restarted enabled=yes
+
+- name: generate keys
+  command: /usr/sbin/opendkim-genkey --directory /etc/opendkim/keys --domain {{ mail_domain }} --restrict

@@ -1,0 +1,121 @@
+# Ansible role nslcd + pam_cas
+- name: Install nss-pam-ldap, gcc, pam-devel, unzip
+  package:
+    name: nss-pam-ldapd, pam-devel, gcc, unzip, make, openssl-devel
+    state: present
+
+- name: (pam_cas) copy esup pam_cas package
+  copy:
+    src: 2.0.11-esup-2.0.7.zip
+    dest: /tmp/2.0.11-esup-2.0.7.zip
+    owner: root
+    group: root
+    mode: 0600
+
+- name: (pam_cas)
+  unarchive:
+    src: /tmp/2.0.11-esup-2.0.7.zip
+    dest: /tmp/
+    remote_src: yes
+
+- name: (pam_cas) Copy MakeFile
+  copy:
+    src: Makefile.redhat
+    dest: /tmp/esup-pam-cas-2.0.11-esup-2.0.7/sources/Makefile
+  
+- name: (pam_cas) Make
+  make:
+    chdir:  /tmp/esup-pam-cas-2.0.11-esup-2.0.7/sources
+
+- name: (pam_cas) Make cas_test
+  make:
+    chdir:  /tmp/esup-pam-cas-2.0.11-esup-2.0.7/sources
+    target: castest
+
+#- name: install pam_cas
+#  shell: cd /tmp && unzip 2.0.11-esup-2.0.7.zip && cd esup-pam-cas-2.0.11-esup-2.0.7/sources/  && ln -s Makefile.redhat Makefile  && make
+# update-crypto-policies --set LEGACY
+#- name: copy pam_cas to /usr/lib64/security
+#  copy:
+#    src: /tmp/esup-pam-cas-2.0.11-esup-2.0.7/sources/pam_cas.so
+#    dest: /usr/lib64/security/pam_cas.so
+#    remote_src: yes
+#    owner: root
+#    group: root
+#    mode: 0755
+
+- name: (pam_cas) copy /etc/pam_cas.conf
+  copy:
+   src: pam_cas.conf 
+   dest: /etc/pam_cas.conf
+   owner: root
+   group: root
+   mode: 0600
+
+- name: (pam_cas) copy webmail.cachain
+  copy:
+    src: webmail.cachain
+    dest: /etc/ssl/certs/webmail.cachain
+    owner: root
+    group: root
+    mode: 0644
+
+- name: modify /etc/nslcd.conf (mappping between NSS names and LDAP infos)
+  template:
+    src: nslcd.conf
+    dest: /etc/nslcd.conf
+    owner: root
+    group: root
+    mode: 0600
+  notify:
+    - restart nslcd
+
+- name: modify /etc/pam.d/imap (telling PAM to use LDAP for IMAP auth & accounting)
+  template:
+    src: imap_pam.d
+    dest: /etc/pam.d/imap
+    owner: root
+    group: root
+    mode: 0644
+
+- name: modify /etc/pam.d/sieve (telling PAM to use LDAP for IMAP auth & accounting)
+  template:
+    src: sieve_pam.d
+    dest: /etc/pam.d/sieve
+    owner: root
+    group: root
+    mode: 0644
+
+- name: (pam_cas) create a cache folder for CAS ticket
+  file:
+    path: /var/cache/pam_cas
+    state: directory
+    mode: '0755'
+
+- name: (pam_cas) insert a cron to delete old pam_cas tickets
+  cron:
+    name: "Clean pam_cas cache"
+    minute: "0"
+    hour: "2"
+    job: "/usr/bin/find /var/cache/pam_cas/* -mtime 1 -exec rm {} \\; > /dev/null 2>&1"
+
+- name: modify /etc/sysconfig/saslauthd to use PAM instead of LDAP
+  copy:
+    src: saslauthd
+    dest: /etc/sysconfig/saslauthd
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart saslauthd
+
+- name: Ensure cyrus-sasl (saslauthd) is started and enabled at boot
+  service:
+    name: saslauthd
+    state: started
+
+- name: Ensure nslcd is started and enabled at boot
+  service:
+    name: nslcd
+    state: started
+

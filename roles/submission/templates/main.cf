@@ -1,0 +1,94 @@
+compatibility_level=2
+inet_protocols = ipv4
+mydestination =
+myorigin = $mydomain
+mydomain = $myhostname
+
+# ROUTING
+virtual_alias_maps = hash:/etc/aliases
+#mynetworks = /etc/postfix/networks_ubo
+mynetworks = 127.0.0.0/8
+transport_maps = hash:/etc/postfix/transport
+
+# SECURITY
+smtpd_banner = \$myhostname ESMTP
+disable_vrfy_command = yes
+masquerade_domains = $mydomain
+smtp_header_checks =  regexp:/etc/postfix/headers_to_remove
+
+# SMTPD TLS
+smtpd_tls_mandatory_protocols=!SSLv2,!SSLv3
+smtpd_tls_mandatory_ciphers=high
+tls_high_cipherlist=EDH+CAMELLIA:EDH+aRSA:EECDH+aRSA+AESGCM:EECDH+aRSA+SHA384:EECDH+aRSA+SHA256:EECDH:+CAMELLIA256:+AES256:+CAMELLIA128:+AES128:+SSLv3:!aNULL:!eNULL:!LOW:!3DES:!MD5:!EXP:!PSK:!DSS:!RC4:!SEED:!ECDSA:CAMELLIA256-SHA:AES256-SHA:CAMELLIA128-SHA:AES128-SHA
+smtpd_tls_cert_file = /etc/ssl/certs/wildcard.{{ mail_domain}}.chained.crt
+smtpd_tls_key_file = /etc/ssl/certs/wildcard.{{ mail_domain}}.key
+smtp_tls_CAfile = /etc/ssl/certs/wildcard.{{ mail_domain}}.cachain
+smtpd_tls_received_header = yes
+smtp_tls_loglevel = 1
+
+# SASL AUTH
+broken_sasl_auth_clients = yes
+smtpd_sasl_security_options = noanonymous
+smtpd_sasl_tls_security_options = noanonymous
+smtpd_sasl_authenticated_header = yes
+
+debugger_command =
+	 PATH=/bin:/usr/bin:/usr/local/bin:/usr/X11R6/bin
+	 ddd $daemon_directory/$process_name $process_id & sleep 5
+
+sendmail_path = /usr/sbin/sendmail.postfix
+newaliases_path = /usr/bin/newaliases.postfix
+mailq_path = /usr/bin/mailq.postfix
+manpage_directory = /usr/share/man
+sample_directory = /usr/share/doc/postfix-2.10.1/samples
+readme_directory = /usr/share/doc/postfix-2.10.1/README_FILES
+mailbox_size_limit = 0
+recipient_delimiter = +
+append_at_myorigin = no
+local_recipient_maps =
+smtpd_helo_required = yes
+
+smtpd_sender_restrictions =
+ hash:/etc/postfix/access
+ permit_sasl_authenticated
+ reject_unknown_sender_domain
+ reject_unknown_address
+ reject_non_fqdn_sender
+
+smtpd_helo_restrictions =
+ permit_sasl_authenticated
+ reject_non_fqdn_helo_hostname
+ reject_invalid_helo_hostname
+ reject_unknown_helo_hostname
+ warn_if_reject
+
+smtpd_relay_restrictions =
+ hash:/etc/postfix/access
+ permit_mynetworks,
+ check_policy_service inet:127.0.0.1:10045
+ permit_sasl_authenticated,
+ reject_non_fqdn_recipient,
+ reject_unauth_destination,
+ reject_unauth_destination,
+ reject_non_fqdn_hostname,
+ reject_non_fqdn_sender,
+ reject_unknown_sender_domain,
+ reject_unknown_recipient_domain,
+ reject_unlisted_recipient,
+
+127.0.0.1:10045_time_limit = 3600
+
+smtpd_recipient_restrictions =
+ permit_mynetworks
+ check_policy_service inet:127.0.0.1:10045
+ permit_sasl_authenticated
+ reject_unauth_destination
+
+# Counting Recipient is done here:
+smtpd_end_of_data_restrictions =
+ check_policy_service inet:127.0.0.1:10045
+
+# Content filtering
+content_filter = smtp-amavis:[127.0.0.1]:10024
+# DKIM
+milter_default_action = accept

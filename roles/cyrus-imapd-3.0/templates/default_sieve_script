@@ -1,0 +1,4 @@
+require "fileinto";
+            if header :contains ["subject"] ["[SPAM]"] {
+               fileinto "INBOX.spam";
+            }

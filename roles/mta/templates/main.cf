@@ -1,0 +1,79 @@
+compatibility_level=2
+mydomain = {{ mail_domain }}  
+myorigin = $mydomain 
+mydestination = localhost $myhostname, localhost.$mydomain, $mydomain
+relay_domains = $myhostname
+mynetworks = /etc/postfix/networks
+inet_protocols = ipv4
+smtpd_banner = $myhostname 
+biff = no
+message_size_limit = 16777216
+append_dot_mydomain = no
+## LMTP
+lmtp_sasl_auth_enable = yes
+lmtp_sasl_mechanism_filter = plain, login
+lmtp_sasl_password_maps = hash:/etc/postfix/lmtpauth
+lmtp_sasl_security_options = noanonymous
+lmtp_use_tls = yes
+lmtp_tls_loglevel = 1
+lmtp_tls_CAfile = /etc/ssl/certs/ca-bundle.trust.crt
+lmtp_destination_recipient_limit = 100
+lmtp_destination_concurrency_limit = 30
+# Routing
+# 1 - rewrite address to mailForwardingAddress
+virtual_alias_maps = hash:/etc/aliases, ldap:/etc/postfix/ldap-virtual.cf
+# 2 - look for local aliases
+alias_maps = hash:/etc/aliases
+# 3 - look for IMAP mailHost in case of address in $mydestination
+transport_maps = hash:/etc/postfix/transport
+# 4 - if LMTP, rewrite supannAutreMail to uid
+lmtp_generic_maps =  ldap:/etc/postfix/ldap-aliases.cf
+# 5 - forward everything else to outbound mailserver 
+default_transport = smtp:[{{ smtp_default }}]
+# antispam
+smtpd_helo_required = yes
+smtpd_helo_restrictions = permit_mynetworks, reject_invalid_helo_hostname
+disable_vrfy_command = yes
+strict_rfc821_envelopes = yes
+smtpd_discard_ehlo_keywords = silent-discard
+# SMTPD Others
+smtpd_reject_footer = \c.Please provide the following information in your problem report: time ($localtime).
+smtpd_relay_restrictions =
+
+smtpd_recipient_restrictions = 
+  reject_unknown_recipient_domain,
+  permit_mynetworks,
+  reject_non_fqdn_recipient,
+  reject_unauth_destination,
+  reject_unauth_pipelining,
+  reject_non_fqdn_hostname,
+  reject_non_fqdn_sender,
+  reject_unknown_sender_domain,
+  reject_unlisted_recipient,
+  reject_invalid_hostname,
+
+smtpd_client_restrictions =
+  permit_mynetworks,
+  hash:/etc/postfix/access,
+  reject_unknown_sender_domain,
+  reject_non_fqdn_sender,
+
+smtpd_sender_restrictions = hash:/etc/postfix/access,
+  permit_mynetworks,
+  reject_unknown_sender_domain,
+  reject_non_fqdn_sender,
+
+header_checks = regexp:/etc/postfix/header_checks
+local_destination_recipient_limit =50
+debugger_command =
+ PATH=/bin:/usr/bin:/usr/local/bin:/usr/X11R6/bin
+ xxgdb $daemon_directory/$process_name $process_id & sleep 5
+sendmail_path = /usr/sbin/sendmail.postfix
+newaliases_path = /usr/bin/newaliases.postfix
+mailq_path = /usr/bin/mailq.postfix
+default_destination_concurrency_limit = 10
+berkeley_db_create_buffer_size = 33554432
+berkeley_db_read_buffer_size = 262144
+maximal_queue_lifetime = 3d
+bounce_queue_lifetime = 3d
+smtpd_timeout = 150

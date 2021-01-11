@@ -1,0 +1,2 @@
+- name: start loopback
+  command: /usr/sbin/ifup lo:0

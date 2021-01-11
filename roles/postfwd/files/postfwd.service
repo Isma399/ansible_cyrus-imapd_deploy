@@ -1,0 +1,13 @@
+[Unit]
+Description=Postfwd - Postfix firewall
+After=network.target
+
+[Service]
+ExecStart=/etc/default/postfwd start
+ExecReload=/etc/default/postfwd reload
+ExecStop=/etc/default/postfwd stop
+Type=forking
+PIDFile=/var/tmp/postfwd3-master.pid
+
+[Install]
+WantedBy=default.target

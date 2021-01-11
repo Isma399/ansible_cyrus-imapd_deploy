@@ -1,0 +1,6 @@
+{{ legacy_imap }}	 {{ cyrus_admin }}:{{ cyrus_password }}
+{{ new_imap }}		{{ cyrus_admin }}:{{ cyrus_password }}
+{{ nginx_vip }}		{{ cyrus_admin }}:{{ cyrus_password }}
+
+
+

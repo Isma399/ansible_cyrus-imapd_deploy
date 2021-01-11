@@ -1,0 +1,177 @@
+---
+# - hosts: kvm
+#   gather_facts: false
+#   vars:
+#     - ansible_become_pass: '{{ become_password }}'
+#     - kvm:
+#         kvmmail-1-test:
+#           - CYRUS-STORE-1-BACK
+#           - CYRUS-STORE-2-REPL
+#         kvmmail-2-test:
+#           - CYRUS-STORE-2-BACK
+#           - CYRUS-STORE-1-REPL
+#   roles:
+#     - lun-multipath
+#   tags: iscsi
+
+- hosts: imap-backend, imap-replicat
+  gather_facts: false
+  vars:
+    - ansible_become_pass: '{{ become_password }}'
+  roles:
+    - lun-partition
+  tags: iscsi
+
+- hosts: all
+  gather_facts: true
+  vars:
+    ansible_become_pass: "{{ become_password }}"
+  roles:
+    - common 
+  tags: common
+
+- hosts: all
+  gather_facts: true
+  vars:
+    ansible_become_pass: "{{ become_password }}"
+  roles:
+    - ssl
+  tags: ssl 
+
+- hosts: imap-frontend 
+  gather_facts: true
+  vars:
+    ansible_become_pass: "{{ become_password }}"
+  roles:
+    - nslcd
+  tags: nslcd
+
+- hosts: imap-backend, imap-replicat
+  gather_facts: false
+  vars:
+    ansible_become_pass: "{{ become_password }}"
+  roles:
+    - mistake
+  tags: mistake
+
+- hosts: all,!antispam
+  gather_facts: true
+  vars:
+    ansible_become_pass: "{{ become_password }}"
+  roles:
+    - saslauth
+  tags: saslauth
+
+- hosts: mta, antispam, submission, imap-frontend, ldap, nginx-mailproxy 
+  gather_facts: false
+  vars:
+    ansible_become_pass: "{{ become_password }}"
+  roles:
+    - loopback
+  tags: loopback
+
+- hosts: mta
+  gather_facts: true
+  vars:
+    ansible_become_pass: '{{ become_password }}'
+  roles:
+    - mta
+  tags: mta
+
+- hosts: all
+  gather_facts: true
+  vars:
+    ansible_become_pass: '{{ become_password }}'
+  roles:
+    - snmp
+  tags: snmp
+
+- hosts: antispam
+  gather_facts: false
+  vars:
+    ansible_become_pass: '{{ become_password }}'
+  roles:
+    - antispam
+  tags: antispam
+
+- hosts: submission
+  gather_facts: false
+  vars:
+    ansible_become_pass: '{{ become_password }}'
+  roles:
+    - submission
+  tags: submission
+
+- hosts: ldap
+  gather_facts: false
+  vars:
+    ansible_become_pass: '{{ become_password }}'
+  roles:
+    - ldap
+  tags: ldap
+
+- hosts: nginx-mailproxy
+  gather_facts: False
+  vars:
+    ansible_become_pass: '{{ become_password }}'
+  roles:
+    - nginx
+  tags: nginx
+
+- hosts: imap-frontend, imap-backend, imap-replicat, imap-murder
+  environment:
+    GIT_SSL_NO_VERIFY: 'true'
+  gather_facts: true
+  vars:
+    ansible_become_pass: '{{ become_password }}'
+  roles:
+    - cyrus-imapd-3.0
+  tags: imap
+
+- hosts: imap-backend, imap-replicat
+  gather_facts: true
+  vars:
+    ansible_become_pass: '{{ become_password }}'
+  roles:
+    - keepalived
+  tags: keepalived
+
+- hosts: all
+  gather_facts: false
+  vars:
+    ansible_become_pass: '{{ become_password }}'
+  roles:
+    - firewalld
+  tags: firewalld
+
+- hosts: all
+  gather_facts: false
+  vars:
+    ansible_become_pass: '{{ become_password }}'
+  roles:
+    - selinux
+  tags: selinux
+
+#- hosts: submission
+#  gather_facts: false
+#  vars:
+#    ansible_become_pass: '{{ become_password }}'
+#  roles:
+#    - postfwd
+#  tags: postfwd
+
+- hosts: imap-backend, imap-replicat
+  gather_facts: true
+  vars:
+    ansible_become_pass: '{{ become_password }}'
+  roles:
+    - imap-tools
+  tags: imap-tools
+
+#- hosts: all
+#  gather_facts: false
+#  vars:
+#    ansible_become_pass: '{{ become_password }}'
+#  roles:
+#    - update
+#  tags: update

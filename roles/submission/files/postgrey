@@ -1,0 +1,1 @@
+POSTGREY_OPTS="--delay=60 --inet=60000"

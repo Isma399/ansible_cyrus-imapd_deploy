@@ -1,0 +1,38 @@
+---
+# Ansible role SNMP
+- set_fact:
+    _hostgroup: '{{ group_names | difference(["python3_hosts"]) }}'
+  delegate_to: localhost
+  run_once: yes
+
+- name: Install net-snmp
+  package:
+    state: present
+    name:
+      - net-snmp 
+
+- name: copy a script for mta
+  copy:
+    src: snmp_monitor_postqueue.sh
+    dest: /usr/local/scripts/snmp_monitor_postqueue.sh
+  when: _hostgroup[0] in [ 'antispam', 'mta', 'submission']
+
+- name: copy a second script for mta
+  copy:
+    src: fetch_mail_statistics.pl
+    dest: /usr/local/scripts/fetch_mail_statistics.pl
+    mode: 0744
+    owner: root 
+  when:  _hostgroup[0] in [ 'antispam', 'mta', 'submission'] 
+
+- name: copy snmpd.conf
+  template:
+    src: snmpd.conf
+    dest: /etc/snmp/snmpd.conf
+  notify: restart snmpd
+
+#- name: Ensure snmpd is started
+#  service:
+#    name: snmpd
+#    enabled: yes
+#    state: restarted

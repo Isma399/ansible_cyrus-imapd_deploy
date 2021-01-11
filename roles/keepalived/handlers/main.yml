@@ -1,0 +1,24 @@
+- name: sysctl
+  command: /usr/sbin/sysctl -p
+
+- name: restart keepalived
+  service:
+    name: keepalived
+    enabled: yes
+    state: restarted
+
+- name: compile module file
+  command: /usr/bin/checkmodule -M -m -o /tmp/keepalived_lmtp.mod /tmp/keepalived_lmtp.te
+
+- name: build policy package
+  command: /usr/bin/semodule_package -o /tmp/keepalived_lmtp.pp -m /tmp/keepalived_lmtp.mod
+
+- name: load policy package
+  command: /usr/sbin/semodule -i /tmp/keepalived_lmtp.pp
+
+- name: setsebool
+  command: /usr/sbin/setsebool -P nis_enabled 1
+
+- name: chcon imap_search
+  command: chcon -t keepalived_unconfined_script_exec_t /etc/keepalived/imap_search.py
+  when: "'imap-backend' in group_names[0]"

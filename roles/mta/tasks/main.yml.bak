@@ -1,0 +1,125 @@
+---
+# Ansible role Postfix
+- name: Ensure postfix is installed.
+  package:
+    name: postfix
+    state: present
+
+- name: Install postfix-ldap
+  dnf:
+    name: postfix-ldap
+    state: present
+
+- name: Copy postfix networks_ubo
+  copy: 
+    src=networks_ubo
+    dest=/etc/postfix/networks_ubo 
+    owner=root 
+    group=root
+    mode=0644
+  notify:
+    - restart postfix
+
+- name: Copy postfix transport
+  copy:
+    src=transport
+    dest=/etc/postfix/transport
+    owner=root
+    group=root
+    mode=0644
+  notify:
+    - postmap transport
+    - restart postfix
+
+
+- name: Copy postfix access
+  copy: 
+    src=access 
+    dest=/etc/postfix/access 
+    owner=root 
+    group=root
+    mode=0644
+  notify:
+    - access postmap
+    - restart postfix
+
+- name: Copy postfix header_checks
+  copy: 
+    src=header_checks 
+    dest=/etc/postfix/header_checks 
+    owner=root 
+    group=root
+    mode=0644
+  notify:
+    - header-checks postmap
+    - restart postfix
+
+- name: Copy postfix master.cf
+  copy:
+    src=master.cf
+    dest=/etc/postfix/master.cf
+    owner=root
+    group=root
+    mode=0644
+  notify:
+    - restart postfix
+ 
+- name: Copy postfix lmtpauth
+  template: 
+    src=lmtpauth 
+    dest=/etc/postfix/lmtpauth 
+    owner=root 
+    group=root
+    mode=0644
+  notify:
+    - lmtpauth postmap
+    - restart postfix
+
+- name: Copy postfix main.cf
+  template: 
+    src=main.cf 
+    dest=/etc/postfix/main.cf 
+    owner=root 
+    group=root
+    mode=0644
+  notify:
+    - restart postfix
+
+- name: Copy postfix ldap-aliases.cf
+  template:
+    src=ldap-aliases.cf
+    dest=/etc/postfix/ldap-aliases.cf
+    owner=root
+    group=root
+    mode=0644
+  notify:
+    - restart postfix
+
+- name: Copy postfix ldap-virtual.cf
+  template:
+    src=ldap-virtual.cf
+    dest=/etc/postfix/ldap-virtual.cf
+    owner=root
+    group=root
+    mode=0644
+  notify:
+    - restart postfix
+
+- name: Copy postfix ldap-transport.cf
+  template:
+    src=ldap-transport.cf
+    dest=/etc/postfix/ldap-transport.cf
+    owner=root
+    group=root
+    mode=0644
+  notify:
+    - restart postfix
+
+
+
+- name: Ensure postfix is started and enabled at boot.
+  service:
+    name: postfix
+    state: started
+    enabled: yes
+

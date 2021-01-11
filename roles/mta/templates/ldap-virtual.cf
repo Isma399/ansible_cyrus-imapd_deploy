@@ -1,0 +1,16 @@
+# Added with Ansible
+server_host = {{ ldap_server_vip }}
+search_base = {{ ldap_ou }}
+domain = {{ mail_domain }}
+scope = sub
+{% if 'preprod' in inventory_hostname %}
+query_filter = (SupannAutremail=%u@{{ mail_domain }})
+result_attribute = mailForwardingAddress
+result_format = %u@{{ mail_domain }}
+{% else %}
+query_filter = (SupannAutremail=%s)
+result_attribute = mailForwardingAddress
+{% endif %}
+bind = no
+version = 3
+#debuglevel = 99

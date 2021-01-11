@@ -1,0 +1,3 @@
+# les sites dans http://www.spamhaus.org/query/bl?ip=109.0.60.29 que l' on veut qd meme laisser passer
+# regenerer par postmap /etc/postfix/spamhaus-ok
+109.0.60.29		OK

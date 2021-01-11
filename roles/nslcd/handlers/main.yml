@@ -1,0 +1,12 @@
+- name: restart saslauthd
+  service:
+    name: saslauthd
+    state: restarted
+    enabled: yes
+
+- name: restart nslcd
+  service:
+    name: nslcd
+    state: restarted
+    enabled: yes
+

@@ -1,0 +1,62 @@
+---
+# roles: lun-partition
+- name: Parted on backend and replicat LUNs
+  parted:
+    device: "{{ item }}"
+    number: 1
+    state: present
+  with_items:
+    - /dev/sdb
+    - /dev/sdc
+  tags: lun-partition
+
+- name: Create XFS filesystem on /dev/sda and /dev/sdb
+  filesystem:
+    fstype: xfs
+    dev: "{{ item }}"
+    force: yes
+  with_items:
+    - /dev/sdb1
+    - /dev/sdc1
+  tags: lun-partition
+
+- name: Create mountpoint (metadata store) 
+  file:
+    path:  /var/spool/imap/metadata
+    state: directory
+
+- name: Create mountpoint (maildata pool)
+  file:
+    path:  /var/spool/imap/maildata 
+    state: directory
+
+- name: mounting partition maildata
+  mount:
+    path: /var/spool/imap/maildata
+    src: /dev/sdb1
+    fstype: xfs
+    opts: noatime,_netdev
+    state: present
+
+- name: mounting partition metadata
+  mount:
+    path: /var/spool/imap/metadata
+    src: /dev/sdc1
+    fstype: xfs
+    opts: noatime,_netdev,inode64
+    state: present
+
+#- name: Chown
+#  command: chown -R cyrus:mail /var/spool/imap
+
+- name: Fix SELINUX context on IMAP spool
+  command: semanage fcontext -a -t mail_spool_t /var/spool/imap
+
+- name: Restore SELINUX context
+  command: restorecon -vR /var/spool/imap/
+
+- name: reboot VMs for mounting all this stuff
+  reboot:
+    test_command: uptime
+
+

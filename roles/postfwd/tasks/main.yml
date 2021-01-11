@@ -1,0 +1,70 @@
+- name: install tools to build postfwd
+  dnf:
+    name: gcc, libgcc, make, cpanminus
+    state: present
+
+- name: install prerequites for geoip detection
+  dnf:
+    name: perl(Geo::IP), perl(Config::Any), perl(DBD::mysql), GeoIP-data
+    state: present
+    enablerepo: PowerTools
+
+- name:
+  cpanm:
+    name: Net::Subnet
+    system_lib: yes
+
+- name:
+  cpanm:
+    name: Net::DNS
+    system_lib: yes
+
+- name: copy the executable
+  copy:
+    src: postfwd2
+    dest: /usr/sbin/postfwd2
+    mode: 0755
+    owner: root
+    group: root
+
+- name: copy the start script
+  copy:
+    src: postfwd-script.sh 
+    dest: /etc/default/postfwd
+    mode: 0755
+    owner: root
+    group: root
+
+- name: copy the systemd script
+  copy:
+    src: postfwd.service
+    dest: /etc/systemd/system/postfwd.service
+    mode: 0644
+    owner: root
+    group: root
+  notify: 
+    - daemon reload
+
+- name: copy postfwd.cf
+  copy:
+    src: postfwd.cf
+    dest: /etc/postfix/postfwd.cf
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart postfwd
+
+- name: (geoip) copy files
+  copy:
+    src: "{{ item }}"
+    dest: /etc/postfix/
+    owner: root
+    group: root
+    mode: 06444
+  with_items: 
+    - anti-spam.conf
+    - anti-spam-sql-st.conf
+    - postfwd-anti-spam.plugin
+  notify: restart postfwd
+
